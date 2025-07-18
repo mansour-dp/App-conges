@@ -1,0 +1,352 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API Gestion des Congés",
+        "description": "API pour la gestion des demandes de congés des employés",
+        "version": "1.0.0",
+        "contact": {
+            "name": "Support API",
+            "email": "support@app.com"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost/api",
+            "description": "Serveur local (Docker)"
+        },
+        {
+            "url": "http://127.0.0.1/api",
+            "description": "Serveur local alternatif"
+        },
+        {
+            "url": "{protocol}://{host}/api",
+            "description": "Serveur dynamique",
+            "variables": {
+                "protocol": {
+                    "enum": ["http", "https"],
+                    "default": "http"
+                },
+                "host": {
+                    "default": "localhost"
+                }
+            }
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "email": {"type": "string"},
+                    "first_name": {"type": "string"},
+                    "matricule": {"type": "string"},
+                    "phone": {"type": "string"},
+                    "is_active": {"type": "boolean"},
+                    "role": {"$ref": "#/components/schemas/Role"},
+                    "department": {"$ref": "#/components/schemas/Department"}
+                }
+            },
+            "Role": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "description": {"type": "string"}
+                }
+            },
+            "Department": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "description": {"type": "string"},
+                    "code": {"type": "string"}
+                }
+            },
+            "LoginRequest": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                    "email": {"type": "string", "example": "admin@app.com"},
+                    "password": {"type": "string", "example": "password"}
+                }
+            },
+            "LoginResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "token": {"type": "string"},
+                    "user": {"$ref": "#/components/schemas/User"}
+                }
+            }
+        }
+    },
+    "paths": {
+        "/test": {
+            "get": {
+                "tags": ["Test"],
+                "summary": "Test de l'API",
+                "description": "Endpoint de test pour vérifier que l'API fonctionne",
+                "responses": {
+                    "200": {
+                        "description": "API fonctionne",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {"type": "boolean"},
+                                        "message": {"type": "string"},
+                                        "timestamp": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "tags": ["Authentification"],
+                "summary": "Connexion utilisateur",
+                "description": "Authentifie un utilisateur avec email/matricule et mot de passe",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/LoginRequest"}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/LoginResponse"}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Identifiants incorrects"
+                    }
+                }
+            }
+        },
+        "/user": {
+            "get": {
+                "tags": ["Authentification"],
+                "summary": "Obtenir l'utilisateur connecté",
+                "description": "Récupère les informations de l'utilisateur actuellement connecté",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Informations utilisateur",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/User"}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "post": {
+                "tags": ["Authentification"],
+                "summary": "Déconnexion utilisateur",
+                "description": "Déconnecte l'utilisateur et invalide le token",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Déconnexion réussie"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/dashboard/stats": {
+            "get": {
+                "tags": ["Dashboard"],
+                "summary": "Statistiques du tableau de bord",
+                "description": "Récupère les statistiques pour le tableau de bord",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Statistiques récupérées"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/users": {
+            "get": {
+                "tags": ["Utilisateurs"],
+                "summary": "Liste des utilisateurs",
+                "description": "Récupère la liste de tous les utilisateurs",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Liste des utilisateurs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/components/schemas/User"}
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            },
+            "post": {
+                "tags": ["Utilisateurs"],
+                "summary": "Créer un utilisateur",
+                "description": "Crée un nouvel utilisateur",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "email": {"type": "string"},
+                                    "password": {"type": "string"},
+                                    "first_name": {"type": "string"},
+                                    "matricule": {"type": "string"},
+                                    "phone": {"type": "string"},
+                                    "role_id": {"type": "integer"},
+                                    "department_id": {"type": "integer"}
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur créé"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/demandes-conges": {
+            "get": {
+                "tags": ["Demandes de congés"],
+                "summary": "Liste des demandes de congés",
+                "description": "Récupère la liste des demandes de congés",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Liste des demandes"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            },
+            "post": {
+                "tags": ["Demandes de congés"],
+                "summary": "Créer une demande de congé",
+                "description": "Crée une nouvelle demande de congé",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "date_debut": {"type": "string", "format": "date"},
+                                    "date_fin": {"type": "string", "format": "date"},
+                                    "type_conge": {"type": "string"},
+                                    "motif": {"type": "string"}
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Demande créée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/roles": {
+            "get": {
+                "tags": ["Rôles"],
+                "summary": "Liste des rôles",
+                "description": "Récupère la liste de tous les rôles",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Liste des rôles",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/components/schemas/Role"}
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        },
+        "/departments": {
+            "get": {
+                "tags": ["Départements"],
+                "summary": "Liste des départements",
+                "description": "Récupère la liste de tous les départements",
+                "security": [{"bearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Liste des départements",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/components/schemas/Department"}
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                }
+            }
+        }
+    }
+}

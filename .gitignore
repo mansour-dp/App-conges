@@ -1,0 +1,61 @@
+# Dependencies
+Client/node_modules/
+Server/vendor/
+
+# Environment files
+Server/.env
+Client/.env
+Client/.env.local
+Client/.env.development.local
+Client/.env.test.local
+Client/.env.production.local
+
+# Build outputs
+Client/dist/
+Client/build/
+Server/public/build/
+
+# Logs
+Client/npm-debug.log*
+Client/yarn-debug.log*
+Client/yarn-error.log*
+Server/storage/logs/*.log
+
+# Database
+Server/database/*.sqlite
+Server/database/*.sqlite-journal
+
+# Cache
+Server/bootstrap/cache/*
+Server/storage/framework/cache/*
+Server/storage/framework/sessions/*
+Server/storage/framework/views/*
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Laravel specific
+Server/public/hot
+Server/public/storage
+Server/storage/*.key
+
+# Vue/Vite specific
+Client/.vite/
