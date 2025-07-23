@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Congés SENELEC</title>
+    <!-- Ajout d'un script de détection d'erreurs -->
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error('Erreur globale détectée:', { message, source, lineno, colno, error });
+        // Si on détecte l'erreur 'ze', on fournit plus d'informations
+        if (message && message.includes('ze')) {
+          console.warn('Erreur "ze" détectée - Problème connu avec la connexion API');
+          console.info('Vérifiez que Docker est démarré et que l\'API est accessible');
+          // Essayer de faire un diagnostic de base
+          fetch('http://localhost/api/test')
+            .then(r => r.json())
+            .then(data => console.log('✅ API test accessible:', data))
+            .catch(err => console.error('❌ API inaccessible:', err));
+        }
+        return false;
+      };
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+    <!-- Script de détection de problèmes de chargement -->
+    <script>
+      // Vérifier si l'application se charge correctement
+      setTimeout(() => {
+        const appElement = document.getElementById('app');
+        if (appElement && !appElement.hasChildNodes()) {
+          console.error('L\'application n\'a pas pu se charger correctement après 5 secondes');
+          appElement.innerHTML = `
+            <div style="padding: 20px; text-align: center; font-family: sans-serif;">
+              <h2>Problème de chargement</h2>
+              <p>L'application n'a pas pu se charger correctement. Vérifiez que:</p>
+              <ul style="text-align: left; display: inline-block;">
+                <li>Docker est démarré correctement</li>
+                <li>Le serveur API est accessible</li>
+                <li>Votre connexion réseau est stable</li>
+              </ul>
+              <button onclick="window.location.reload()" style="margin-top: 20px; padding: 10px 20px;">
+                Rafraîchir la page
+              </button>
+            </div>
+          `;
+        }
+      }, 5000);
+    </script>
+  </body>
+</html>

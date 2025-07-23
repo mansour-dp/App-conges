@@ -1,0 +1,190 @@
+/* Styles communs pour tous les sidebars */
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: var(--primary-color);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  box-shadow: 4px 0 25px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.sidebar.is-open {
+  transform: translateX(0%);
+}
+
+.sidebar:not(.is-open) {
+  transform: translateX(-250px);
+}
+
+.sidebar-nav {
+  padding: 20px 0;
+  flex-grow: 1;
+  overflow-y: auto;
+  scrollbar-width: none; /* Pour Firefox */
+  -ms-overflow-style: none; /* Pour Internet Explorer et Edge */
+}
+
+/* Pour Chrome, Safari et Opera */
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 20px;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
+  margin: 4px 8px;
+  border-radius: 8px;
+  min-height: 48px;
+}
+
+.nav-item i {
+  width: 24px;
+  margin-right: 12px;
+  font-size: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.nav-item span {
+  flex: 1;
+  line-height: 1.4;
+  font-size: 14px;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.nav-item:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item.active {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: white;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Ajustement pour les icônes quand le texte est sur deux lignes */
+.nav-item.active i,
+.nav-item:hover i {
+  color: white;
+}
+
+/* Styles pour le profil utilisateur */
+.user-profile-section {
+  background-color: var(--secondary-color);
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.senelec-logo {
+  width: 100px;
+  height: auto;
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.senelec-logo:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+/* Styles pour le bouton de déconnexion */
+.logout-btn-employe {
+  width: 100%;
+  padding: 10px 0;
+  background-color: #008a9b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.logout-btn-employe:hover {
+  background-color: #005f6b;
+}
+
+/* Styles pour le bouton hamburger */
+.sidebar-hamburger {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 26px;
+  cursor: pointer;
+  z-index: 110;
+  transition: color 0.2s;
+}
+
+.sidebar-hamburger:hover {
+  color: #008a9b;
+}
+
+/* Media queries pour la responsivité */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 200px;
+  }
+
+  .nav-item {
+    padding: 10px 15px;
+  }
+
+  .nav-item i {
+    font-size: 16px;
+  }
+
+  .nav-item span {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0%);
+  }
+} 

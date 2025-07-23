@@ -1,0 +1,90 @@
+import { defineStore } from "pinia";
+import { departmentsApi } from "@/services/api";
+
+export const useDepartmentsStore = defineStore("departments", {
+  state: () => ({
+    departments: [],
+    loading: false,
+    error: null,
+  }),
+  
+  actions: {
+    async fetchDepartments() {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        const response = await departmentsApi.list();
+        console.log('🏢 Départements API response:', response.data);
+        this.departments = response.data.data || [];
+        return response.data;
+      } catch (error) {
+        this.error = error.message;
+        console.error('Erreur lors du chargement des départements:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    async addDepartment(department) {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        const response = await departmentsApi.create(department);
+        await this.fetchDepartments(); // Recharger la liste
+        return response.data;
+      } catch (error) {
+        this.error = error.message;
+        console.error('Erreur lors de la création du département:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    async updateDepartment(departmentId, department) {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        const response = await departmentsApi.update(departmentId, department);
+        
+        // Mettre à jour dans le state local
+        const index = this.departments.findIndex(d => d.id === departmentId);
+        if (index !== -1) {
+          this.departments[index] = response.data.data;
+        }
+        
+        return response.data;
+      } catch (error) {
+        this.error = error.message;
+        console.error('Erreur lors de la mise à jour du département:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    async deleteDepartment(departmentId) {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        await departmentsApi.delete(departmentId);
+        
+        // Supprimer du state local
+        this.departments = this.departments.filter(d => d.id !== departmentId);
+        
+        return true;
+      } catch (error) {
+        this.error = error.message;
+        console.error('Erreur lors de la suppression du département:', error);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+});
