@@ -75,7 +75,7 @@ class UserController extends Controller
         }
 
         $userData = $validator->validated();
-        
+
         // Mapper les champs vers les vrais noms de colonnes de la base
         $mappedUserData = [
             'name' => $userData['nom'],
@@ -90,7 +90,7 @@ class UserController extends Controller
             'date_embauche' => $userData['date_embauche'] ?? null,
             'conges_annuels_total' => $userData['conges_annuels_total'] ?? 30,
         ];
-        
+
         $mappedUserData['conges_annuels_restants'] = $mappedUserData['conges_annuels_total'];
 
         $user = User::create($mappedUserData);
@@ -164,7 +164,7 @@ class UserController extends Controller
     {
         // Note: La contrainte ON DELETE CASCADE gère automatiquement la suppression des demandes de congés
         // Pas besoin de vérifier manuellement l'existence des demandes de congés
-        
+
         $user->delete();
 
         return response()->json([
@@ -228,7 +228,7 @@ class UserController extends Controller
             // Générer un mot de passe temporaire si aucune donnée n'est fournie
             $newPassword = 'temp' . rand(1000, 9999);
         }
-        
+
         $user->update([
             'password' => Hash::make($newPassword),
         ]);

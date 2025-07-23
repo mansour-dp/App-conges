@@ -8,7 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Appeler le UserSeeder qui gère tout de manière centralisée et professionnelle
+        // Appeler le UserSeeder 
         $this->call([
             UserSeeder::class,
         ]);
