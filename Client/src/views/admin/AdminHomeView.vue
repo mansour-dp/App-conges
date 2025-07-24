@@ -101,31 +101,56 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { useUsersStore } from "@/stores/useUsersStore";
+import { ref, computed, onMounted } from "vue";
+import { useUserStore } from "@/stores/users";
+import { useUsersAdminStore } from "@/stores/usersAdmin";
 import { useDepartmentsStore } from "@/stores/departments";
 
 // Stores
-const usersStore = useUsersStore();
+const userStore = useUserStore();
+const usersAdminStore = useUsersAdminStore();
 const departmentsStore = useDepartmentsStore();
 
 // Data from stores
-const users = computed(() => usersStore.users);
-const totalUsers = computed(() => usersStore.totalUsers);
-const usersByRole = computed(() => usersStore.usersByRole);
+const users = computed(() => usersAdminStore.users);
+const totalUsers = computed(() => usersAdminStore.totalUsers);
+const usersByRole = computed(() => usersAdminStore.usersByRole);
 const departments = computed(() => departmentsStore.departments);
+const totalDepartments = computed(() => departmentsStore.totalDepartments);
+
+// Loading states
+const loadingUsers = computed(() => usersAdminStore.usersLoading);
+const loadingDepartments = computed(() => departmentsStore.loading);
+
+// Initialize data
+onMounted(async () => {
+  try {
+    await Promise.all([
+      usersAdminStore.fetchUsers(1, 100, '', true), // Charger tous les utilisateurs
+      departmentsStore.fetchDepartments()
+    ]);
+    
+    // Debug: afficher les données chargées
+    console.log('👥 Utilisateurs chargés:', usersAdminStore.users.length);
+    console.log('🏢 Départements chargés:', departmentsStore.departments.length);
+    console.log('📊 Total utilisateurs:', totalUsers.value);
+    console.log('🏢 Total départements:', totalDepartments.value);
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error);
+  }
+});
 
 // KPIs
 const kpis = computed(() => [
   {
     title: "Utilisateurs Actifs",
-    value: totalUsers.value,
+    value: loadingUsers.value ? "..." : totalUsers.value,
     icon: "mdi-account-group",
     color: "blue-darken-1",
   },
   {
     title: "Départements",
-    value: departments.value.length,
+    value: loadingDepartments.value ? "..." : totalDepartments.value,
     icon: "mdi-office-building",
     color: "green-darken-1",
   },

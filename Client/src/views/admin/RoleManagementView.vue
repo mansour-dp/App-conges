@@ -145,13 +145,13 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useDepartmentsStore } from "@/stores/departments";
-import { useUsersStore } from "@/stores/useUsersStore";
+import { useUsersAdminStore } from "@/stores/usersAdmin";
 import { storeToRefs } from "pinia";
 
 const departmentsStore = useDepartmentsStore();
 const { departments } = storeToRefs(departmentsStore);
 
-const usersStore = useUsersStore();
+const usersStore = useUsersAdminStore();
 const { users } = storeToRefs(usersStore);
 
 const search = ref("");

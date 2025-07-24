@@ -41,49 +41,24 @@
       </v-list>
     </v-menu>
 
-    <!-- User Menu -->
-    <v-menu offset-y>
-      <template v-slot:activator="{ props }">
-        <v-btn icon v-bind="props" class="ml-2">
-          <v-avatar color="primary" size="36">
-            <span class="white--text font-weight-bold">{{ userInitials }}</span>
-          </v-avatar>
-        </v-btn>
-      </template>
-      <v-list>
-        <v-list-item v-if="currentUser" class="mb-2">
-          <template v-slot:prepend>
-            <v-avatar color="primary" size="40">
-              <span class="white--text font-weight-bold">{{
-                userInitials
-              }}</span>
-            </v-avatar>
-          </template>
-          <v-list-item-title class="font-weight-bold"
-            >{{ currentUser.name }} {{ currentUser.prenom }}</v-list-item-title
-          >
-          <v-list-item-subtitle>{{ currentUser.role }}</v-list-item-subtitle>
-        </v-list-item>
-        <v-divider></v-divider>
-        <v-list-item link>
-          <template v-slot:prepend
-            ><v-icon>mdi-account-outline</v-icon></template
-          >
-          <v-list-item-title>Mon Profil</v-list-item-title>
-        </v-list-item>
-        <v-list-item link @click="handleLogout">
-          <template v-slot:prepend><v-icon>mdi-logout</v-icon></template>
-          <v-list-item-title>Déconnexion</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-menu>
+    <!-- User Menu remplacé par bouton déconnexion -->
+    <v-btn
+      icon
+      color="primary"
+      @click="handleLogout"
+      title="Déconnexion"
+      class="ml-2"
+    >
+      <v-icon>mdi-logout</v-icon>
+    </v-btn>
   </v-app-bar>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useUsersStore } from "@/stores/useUsersStore";
+import { useUsersAdminStore } from "@/stores/usersAdmin";
+import { useUserStore } from "@/stores/users";
 import { useDemandesStore } from "@/stores/demandes";
 
 defineProps({
@@ -94,25 +69,31 @@ defineProps({
 });
 
 const router = useRouter();
-const usersStore = useUsersStore();
+const usersStore = useUsersAdminStore();
+const userStore = useUserStore();
 const demandesStore = useDemandesStore();
 
-const currentUser = computed(() => usersStore.currentUser);
+const currentUser = computed(() => userStore.user);
 const pendingDemandes = computed(() => demandesStore.demandesEnAttente);
 const pendingDemandesCount = computed(() => pendingDemandes.value.length);
 
-const userInitials = computed(() => {
-  if (currentUser.value) {
-    const { prenom, name } = currentUser.value;
-    return `${prenom.charAt(0)}${name.charAt(0)}`.toUpperCase();
+const handleLogout = async () => {
+  try {
+    await userStore.logout();
+    router.push('/');
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+    // Forcer la redirection même en cas d'erreur
+    window.location.href = '/';
   }
-  return "?";
-});
-
-const handleLogout = () => {
-  usersStore.logout();
-  window.location.pathname = "/";
 };
+
+// S'assurer que les données utilisateur sont chargées
+onMounted(async () => {
+  if (!currentUser.value && userStore.token) {
+    await userStore.fetchUser();
+  }
+});
 </script>
 
 <style scoped>

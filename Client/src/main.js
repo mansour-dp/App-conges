@@ -14,6 +14,13 @@ import "@mdi/font/css/materialdesignicons.css";
 // Import de Font Awesome pour les icônes
 import "@fortawesome/fontawesome-free/css/all.css";
 
+// Import PrimeVue pour la version 4
+import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
+
+// Import du thème officiel PrimeVue 4 - Aura
+import Aura from '@primevue/themes/aura';
+
 // Import des stores
 import { useUserStore } from "./stores/users";
 
@@ -48,10 +55,21 @@ const vuetify = createVuetify({
 const app = createApp(App);
 const pinia = createPinia();
 
-// Utilisation du router, pinia et vuetify
+// Utilisation du router, pinia, vuetify et PrimeVue
 app.use(router);
 app.use(pinia);
 app.use(vuetify);
+app.use(PrimeVue, {
+  theme: {
+    preset: Aura,
+    options: {
+      prefix: 'p',
+      darkModeSelector: 'system',
+      cssLayer: false
+    }
+  }
+});
+app.use(ToastService);
 
 // Initialisation de l'authentification
 const userStore = useUserStore();

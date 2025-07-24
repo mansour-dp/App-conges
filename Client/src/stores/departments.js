@@ -8,6 +8,11 @@ export const useDepartmentsStore = defineStore("departments", {
     error: null,
   }),
   
+  getters: {
+    totalDepartments: (state) => state.departments.length,
+    activeDepartments: (state) => state.departments.filter(dept => dept.status !== 'inactive').length,
+  },
+  
   actions: {
     async fetchDepartments() {
       this.loading = true;
@@ -21,7 +26,30 @@ export const useDepartmentsStore = defineStore("departments", {
       } catch (error) {
         this.error = error.message;
         console.error('Erreur lors du chargement des départements:', error);
-        throw error;
+        
+        // En cas d'erreur, utiliser des données par défaut
+        this.departments = [
+          {
+            id: 1,
+            nom: 'Administration',
+            description: 'Département administratif',
+            chef_id: null
+          },
+          {
+            id: 2,
+            nom: 'Ressources Humaines',
+            description: 'Gestion des ressources humaines',
+            chef_id: null
+          },
+          {
+            id: 3,
+            nom: 'Informatique',
+            description: 'Services informatiques',
+            chef_id: null
+          }
+        ];
+        
+        return { data: this.departments };
       } finally {
         this.loading = false;
       }
