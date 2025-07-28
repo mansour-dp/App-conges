@@ -55,9 +55,14 @@ apiClient.interceptors.response.use(
 
     // Gestion des erreurs d'authentification
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
-      window.location.href = '/';
+      // Ne pas rediriger automatiquement si c'est une tentative de login
+      if (error.config?.url?.includes('/login')) {
+        console.log('🔐 Erreur de connexion - pas de redirection automatique');
+      } else {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
     }
 
     // Gestion des erreurs de validation (422)
@@ -69,6 +74,11 @@ apiClient.interceptors.response.use(
         console.error('📝 Messages d\'erreur:', errorMessages);
         error.message = errorMessages.join(', ');
       }
+    }
+
+    // Gestion des erreurs de limitation (429)
+    if (error.response?.status === 429) {
+      error.message = 'Trop de tentatives. Veuillez patienter avant de réessayer.';
     }
 
     // Gestion des erreurs serveur (500)

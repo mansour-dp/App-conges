@@ -41,7 +41,7 @@
 import { ref } from "vue";
 
 const drawer = ref(true);
-const rail = ref(false);
+const rail = ref(true);
 
 const menuItems = ref([
   {

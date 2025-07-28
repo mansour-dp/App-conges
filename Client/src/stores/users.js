@@ -47,11 +47,49 @@ export const useUserStore = defineStore('user', {
 
           return { success: true, user: this.user };
         } else {
-          this.error = response.data.message || 'Erreur de connexion';
+          this.error = response.data.message || 'Identifiants invalides';
+          // Ne pas modifier isAuthenticated en cas d'erreur de login
           return { success: false, error: this.error };
         }
       } catch (error) {
-        this.error = error.response?.data?.message || 'Erreur de connexion';
+        console.error('Erreur de connexion détaillée:', error);
+        
+        let errorMessage = 'Erreur de connexion';
+        
+        if (error.response) {
+          // Erreur de réponse du serveur
+          const status = error.response.status;
+          const data = error.response.data;
+          
+          switch (status) {
+            case 401:
+              errorMessage = 'Identifiants invalides';
+              break;
+            case 403:
+              errorMessage = data.message || 'Accès refusé';
+              break;
+            case 422:
+              errorMessage = data.message || 'Données de connexion invalides';
+              break;
+            case 429:
+              errorMessage = 'Trop de tentatives de connexion. Veuillez patienter avant de réessayer.';
+              break;
+            case 500:
+              errorMessage = 'Erreur serveur temporaire';
+              break;
+            default:
+              errorMessage = data.message || 'Erreur de connexion';
+          }
+        } else if (error.request) {
+          // Erreur de réseau
+          errorMessage = 'Problème de connexion réseau';
+        } else {
+          // Autre erreur
+          errorMessage = error.message || 'Erreur inattendue';
+        }
+        
+        this.error = errorMessage;
+        // Ne pas modifier isAuthenticated en cas d'erreur de login
         return { success: false, error: this.error };
       } finally {
         this.loading = false;

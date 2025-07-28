@@ -21,8 +21,10 @@ use App\Http\Controllers\Api\DepartmentController;
 |
 */
 
-// Routes publiques
-Route::post('/login', [AuthController::class, 'login']);
+// Routes publiques avec limitation des tentatives
+Route::middleware('throttle:5,1')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+});
 
 // Routes protégées
 Route::middleware('auth:sanctum')->group(function () {

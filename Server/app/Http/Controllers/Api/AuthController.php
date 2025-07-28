@@ -21,7 +21,7 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Données invalides',
+                'message' => 'Veuillez remplir tous les champs requis.',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -33,15 +33,15 @@ class AuthController extends Controller
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Identifiants incorrects',
+                'message' => 'Identifiants invalides. Vérifiez votre e-mail et mot de passe.',
             ], 401);
         }
 
         if (!$user->is_active) {
             return response()->json([
                 'success' => false,
-                'message' => 'Compte désactivé',
-            ], 401);
+                'message' => 'Votre compte est temporairement désactivé. Contactez l\'administrateur.',
+            ], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

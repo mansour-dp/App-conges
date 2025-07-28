@@ -4,13 +4,12 @@
       <h1>Connexion</h1>
     </div>
     
-    <!-- Alerte d'erreur -->
-    <div v-if="error" class="error-alert">
-      <span class="error-icon"></span>
-      <span class="error-text">{{ error }}</span>
+    <!-- Erreur générale simple -->
+    <div v-if="error" class="simple-error-message" @click="clearError">
+      {{ error }}
     </div>
 
-    <form @submit.prevent="login" autocomplete="off">
+    <form @submit.prevent="handleSubmit" autocomplete="off" novalidate>
       <div class="form-group">
         <label for="email">Adresse e-mail</label>
         <input
@@ -20,29 +19,57 @@
           required
           placeholder="Entrez votre adresse e-mail"
           :disabled="loading"
+          :class="{ 'input-error': emailError }"
           autocomplete="off"
+          @input="emailError = ''"
+          @focus="emailError = ''"
         />
+        <div v-if="emailError" class="error-message">
+          <v-icon icon="mdi-alert-circle" size="small"></v-icon>
+          {{ emailError }}
+        </div>
       </div>
+      
       <div class="form-group">
         <label for="password">Mot de passe</label>
-        <input
-          type="password"
-          id="password"
-          v-model="password"
-          required
-          placeholder="Entrez votre mot de passe"
-          :disabled="loading"
-          autocomplete="off"
-        />
+        <div class="password-input-container">
+          <input
+            :type="showPassword ? 'text' : 'password'"
+            id="password"
+            v-model="password"
+            required
+            placeholder="Entrez votre mot de passe"
+            :disabled="loading"
+            :class="{ 'input-error': passwordError }"
+            autocomplete="off"
+            @input="passwordError = ''"
+            @focus="passwordError = ''"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            @click="showPassword = !showPassword"
+            :disabled="loading"
+          >
+            <v-icon :icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'" size="small"></v-icon>
+          </button>
+        </div>
+        <div v-if="passwordError" class="error-message">
+          <v-icon icon="mdi-alert-circle" size="small"></v-icon>
+          {{ passwordError }}
+        </div>
       </div>
       <div class="form-actions">
-        <button type="submit" class="login-btn" :disabled="loading">
+        <button 
+          type="submit" 
+          class="login-btn" 
+          :disabled="loading"
+          @click.prevent="handleSubmit"
+        >
           <span v-if="loading" class="loading-spinner"></span>
-          {{ loading ? 'Connexion...' : 'Se connecter' }}
+          <v-icon v-if="!loading" icon="mdi-login" start size="small"></v-icon>
+          {{ loading ? 'Connexion en cours...' : 'Se connecter' }}
         </button>
-      </div>
-      <div class="form-links">
-        <a href="#" @click.prevent="forgotPassword">Mot de passe oublié?</a>
       </div>
     </form>
   </div>
@@ -62,16 +89,84 @@ const email = ref('');
 const password = ref('');
 const loading = ref(false);
 const error = ref('');
+const emailError = ref('');
+const passwordError = ref('');
+const lastSubmitTime = ref(0);
+const showPassword = ref(false);
 
 // Methods
+const clearError = () => {
+  error.value = '';
+  emailError.value = '';
+  passwordError.value = '';
+};
+
+const validateEmail = () => {
+  if (!email.value) {
+    emailError.value = 'L\'adresse e-mail est obligatoire.';
+    return false;
+  }
+  // Validation simplifiée - on accepte même si pas parfait
+  emailError.value = '';
+  return true;
+};
+
+const validatePassword = () => {
+  if (!password.value) {
+    passwordError.value = 'Le mot de passe est obligatoire.';
+    return false;
+  }
+  // Validation simplifiée - on accepte n'importe quel mot de passe non vide
+  passwordError.value = '';
+  return true;
+};
+
+const validateForm = () => {
+  const isEmailValid = validateEmail();
+  const isPasswordValid = validatePassword();
+  return isEmailValid && isPasswordValid;
+};
+
+const handleSubmit = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  console.log('🔄 Tentative de connexion avec:', { email: email.value, hasPassword: !!password.value });
+  login();
+};
+
 const login = async () => {
+  // Empêcher les soumissions multiples avec debounce
+  const now = Date.now();
+  if (loading.value || (now - lastSubmitTime.value) < 1000) return;
+  
+  lastSubmitTime.value = now;
   loading.value = true;
   error.value = '';
+  emailError.value = '';
+  passwordError.value = '';
 
   try {
+    // Validation comme Facebook - montrer les erreurs mais permettre la soumission
+    let hasErrors = false;
+    
+    if (!email.value.trim()) {
+      emailError.value = 'L\'adresse e-mail est obligatoire.';
+      hasErrors = true;
+    }
+    
+    if (!password.value.trim()) {
+      passwordError.value = 'Le mot de passe est obligatoire.';
+      hasErrors = true;
+    }
+    
+    // Si erreurs de base, arrêter ici
+    if (hasErrors) {
+      return;
+    }
+
     // Utiliser la méthode login du store
     const result = await usersStore.login({
-      email: email.value,
+      email: email.value.trim(),
       password: password.value
     });
 
@@ -92,17 +187,59 @@ const login = async () => {
       });
       
       // Rediriger vers le tableau de bord approprié
-      redirectToDashboard(userRole);
+      setTimeout(() => {
+        redirectToDashboard(userRole);
+      }, 100); // Petit délai pour éviter les conflicts
     } else {
-      error.value = result.error || 'Erreur de connexion';
+      // Messages d'erreur professionnels - NE PAS EFFACER AUTOMATIQUEMENT
+      error.value = getErrorMessage(result.error);
       console.error('❌ Échec de connexion:', result.error);
+      console.log('🚫 Message d\'erreur affiché:', error.value);
     }
   } catch (err) {
     console.error('Erreur de connexion:', err);
-    error.value = `Erreur de connexion: ${err.message || 'Erreur inconnue'}`;
+    error.value = getErrorMessage(err.message);
   } finally {
     loading.value = false;
   }
+};
+
+const getErrorMessage = (errorMsg) => {
+  // Messages d'erreur professionnels basés sur le type d'erreur
+  if (!errorMsg) return 'Une erreur inattendue s\'est produite.';
+  
+  const lowerError = errorMsg.toLowerCase();
+  
+  if (lowerError.includes('invalid credentials') || 
+      lowerError.includes('mot de passe') ||
+      lowerError.includes('password') ||
+      lowerError.includes('identifiants')) {
+    return 'Identifiants invalides. Vérifiez votre e-mail et mot de passe.';
+  }
+  
+  if (lowerError.includes('network') || 
+      lowerError.includes('timeout') ||
+      lowerError.includes('connexion')) {
+    return 'Problème de connexion. Veuillez réessayer.';
+  }
+  
+  if (lowerError.includes('server') || 
+      lowerError.includes('500')) {
+    return 'Erreur serveur temporaire. Veuillez réessayer plus tard.';
+  }
+  
+  if (lowerError.includes('validation') || 
+      lowerError.includes('422')) {
+    return 'Données invalides. Vérifiez le format de votre e-mail.';
+  }
+  
+  if (lowerError.includes('unauthorized') || 
+      lowerError.includes('401')) {
+    return 'Accès non autorisé. Vérifiez vos identifiants.';
+  }
+  
+  // Message générique pour les autres erreurs
+  return 'Erreur de connexion. Veuillez réessayer.';
 };
 
 const redirectToDashboard = (userRole) => {
@@ -130,10 +267,6 @@ const redirectToDashboard = (userRole) => {
   }
 };
 
-const forgotPassword = () => {
-  // TODO: Implémenter la réinitialisation de mot de passe
-  console.log("Réinitialisation du mot de passe demandée");
-};
 </script>
 
 <style scoped>
@@ -161,22 +294,31 @@ const forgotPassword = () => {
   margin: 0;
 }
 
-/* Alertes */
-.error-alert {
+/* Messages d'erreur simplifiés */
+.simple-error-message {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
   background-color: #fef2f2;
   border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 13px;
   color: #dc2626;
+  animation: slideDown 0.3s ease-out;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.error-icon {
-  margin-right: 8px;
-  font-size: 16px;
+.simple-error-message:hover {
+  background-color: #fde8e8;
+}
+
+.simple-error-message::before {
+  content: "⚠";
+  color: #dc2626;
+  font-weight: bold;
 }
 
 .form-group {
@@ -210,9 +352,80 @@ const forgotPassword = () => {
   background-color: white;
 }
 
+.form-group input.input-error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-group input.input-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
 .form-group input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  padding-right: 50px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #dc2626;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-actions {
@@ -236,6 +449,23 @@ const forgotPassword = () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.login-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .login-btn:hover:not(:disabled) {
@@ -250,9 +480,11 @@ const forgotPassword = () => {
 }
 
 .login-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
   transform: none;
+  background-color: #6b7280;
+  pointer-events: none;
 }
 
 .loading-spinner {
@@ -266,6 +498,18 @@ const forgotPassword = () => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Animation d'apparition simple */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-links {

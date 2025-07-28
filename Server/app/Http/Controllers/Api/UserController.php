@@ -63,7 +63,6 @@ class UserController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'role_id' => 'required|exists:roles,id',
             'manager_id' => 'nullable|exists:users,id',
-            'conges_annuels_total' => 'nullable|integer|min:0|max:60',
             'date_embauche' => 'nullable|date',
             'is_active' => 'boolean',
         ]);
@@ -90,11 +89,8 @@ class UserController extends Controller
             'role_id' => $userData['role_id'],
             'manager_id' => $userData['manager_id'] ?? null,
             'date_embauche' => $userData['date_embauche'] ?? null,
-            'conges_annuels_total' => $userData['conges_annuels_total'] ?? 30,
             'is_active' => $userData['is_active'] ?? true,
         ];
-        
-        $mappedUserData['conges_annuels_restants'] = $mappedUserData['conges_annuels_total'];
 
         $user = User::create($mappedUserData);
         $user->load(['role', 'department', 'manager']);
@@ -130,8 +126,6 @@ class UserController extends Controller
             'department_id' => 'nullable|exists:departments,id',
             'role_id' => 'required|exists:roles,id',
             'manager_id' => 'nullable|exists:users,id',
-            'conges_annuels_total' => 'nullable|integer|min:0|max:60',
-            'conges_annuels_restants' => 'nullable|integer|min:0',
             'date_embauche' => 'nullable|date',
             'is_active' => 'boolean',
         ]);
@@ -162,7 +156,7 @@ class UserController extends Controller
         }
         
         // Mapper les autres champs qui ont le même nom
-        foreach (['email', 'matricule', 'fonction', 'adresse', 'department_id', 'role_id', 'manager_id', 'conges_annuels_total', 'date_embauche'] as $field) {
+        foreach (['email', 'matricule', 'fonction', 'adresse', 'department_id', 'role_id', 'manager_id', 'date_embauche'] as $field) {
             if (isset($userData[$field])) {
                 $mappedData[$field] = $userData[$field];
             }
