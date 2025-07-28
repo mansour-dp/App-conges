@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Récupérer la configuration depuis les variables d'environnement
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/api';
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 // Configuration de base d'Axios avec plus de robustesse
 const apiClient = axios.create({

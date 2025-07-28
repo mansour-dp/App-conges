@@ -18,10 +18,15 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        'fonction',
+        'adresse',
         'department_id',
         'role_id',
         'manager_id',
         'is_active',
+        'date_embauche',
+        'conges_annuels_total',
+        'conges_annuels_restants',
     ];
 
     protected $hidden = [

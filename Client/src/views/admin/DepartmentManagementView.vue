@@ -31,11 +31,14 @@
         class="elevation-0"
         hover
       >
+        <template v-slot:item.code="{ item }">
+          <span>{{ item.code || 'Aucun code' }}</span>
+        </template>
         <template v-slot:item.directorName="{ item }">
-          <v-chip v-if="item.directorName" color="primary" small>{{
-            item.directorName
+          <v-chip v-if="item.description" color="primary" small>{{
+            item.description
           }}</v-chip>
-          <span v-else class="text-grey">Non assigné</span>
+          <span v-else class="text-grey">Aucune description</span>
         </template>
         <template v-slot:item.employeeCount="{ item }">
           <v-chip color="blue-grey" dark small
@@ -76,69 +79,23 @@
       </v-data-table>
     </v-card>
 
-    <!-- Dialog for Add/Edit Department -->
-    <v-dialog v-model="dialog" max-width="500px" persistent>
-      <v-card>
-        <v-card-title class="pa-4 bg-primary">
-          <span class="text-h5">{{ formTitle }}</span>
-        </v-card-title>
-        <v-card-text class="pt-6">
-          <v-container>
-            <v-row>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="editedDepartment.name"
-                  label="Nom du département"
-                  variant="outlined"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-autocomplete
-                  v-model="editedDepartment.directorId"
-                  :items="potentialDirectors"
-                  :item-title="(item) => `${item.prenom} ${item.name}`"
-                  item-value="id"
-                  label="Rechercher un directeur..."
-                  variant="outlined"
-                  clearable
-                ></v-autocomplete>
-              </v-col>
-              <v-col cols="12">
-                <v-select
-                  v-model="editedDepartment.status"
-                  :items="['Actif', 'Inactif']"
-                  label="Statut"
-                  variant="outlined"
-                ></v-select>
-              </v-col>
-            </v-row>
-          </v-container>
-        </v-card-text>
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn text @click="closeDialog">Annuler</v-btn>
-          <v-btn color="primary" variant="elevated" @click="saveDepartment"
-            >Sauvegarder</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Modal pour Ajouter/Modifier un département -->
+    <DepartmentModal
+      v-model="dialog"
+      :department="editedDepartment"
+      :loading="departmentsStore.loading"
+      @submit="saveDepartment"
+    />
 
-    <!-- Confirmation Dialog for Delete -->
-    <v-dialog v-model="dialogDelete" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5"
-          >Êtes-vous sûr de vouloir supprimer ce département ?</v-card-title
-        >
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn text @click="closeDeleteDialog">Annuler</v-btn>
-          <v-btn color="red-darken-1" variant="elevated" @click="deleteDept"
-            >Supprimer</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Modal de confirmation de suppression -->
+    <DepartmentDeleteModal
+      v-model="dialogDelete"
+      :department="departmentToDelete"
+      :employee-count="getEmployeeCountForDepartment(departmentToDelete)"
+      :loading="departmentsStore.loading"
+      @confirm="deleteDept"
+    />
+
   </v-container>
 </template>
 
@@ -147,6 +104,8 @@ import { ref, computed, onMounted } from "vue";
 import { useDepartmentsStore } from "@/stores/departments";
 import { useUsersAdminStore } from "@/stores/usersAdmin";
 import { storeToRefs } from "pinia";
+import DepartmentModal from "@/components/admin/DepartmentModal.vue";
+import DepartmentDeleteModal from "@/components/admin/DepartmentDeleteModal.vue";
 
 const departmentsStore = useDepartmentsStore();
 const { departments } = storeToRefs(departmentsStore);
@@ -160,16 +119,12 @@ const dialogDelete = ref(false);
 const departmentToDelete = ref(null);
 
 const editedIndex = ref(-1);
-const editedDepartment = ref({
-  id: null,
-  name: "",
-  directorId: null,
-  status: "Actif",
-});
+const editedDepartment = ref(null);
 const defaultDepartment = {
   id: null,
   name: "",
-  directorId: null,
+  code: "",
+  description: "",
   status: "Actif",
 };
 
@@ -179,7 +134,8 @@ const formTitle = computed(() =>
 
 const headers = ref([
   { title: "Nom du Département", key: "name", sortable: true },
-  { title: "Directeur", key: "directorName", sortable: false },
+  { title: "Code", key: "code", sortable: true },
+  { title: "Description", key: "directorName", sortable: false },
   { title: "Nombre d'Employés", key: "employeeCount", sortable: false },
   { title: "Statut", key: "status", sortable: true },
   { title: "Actions", key: "actions", sortable: false, align: "end" },
@@ -187,22 +143,26 @@ const headers = ref([
 
 const computedDepartments = computed(() => {
   return departments.value.map((dept) => {
-    // Correction du mapping pour le directeur et le département
-    const director = users.value.find((user) => user.id === dept.manager_id || user.id === dept.directorId);
     const employeeCount = users.value.filter(
-      (user) => user.departement_id === dept.id || user.departementId === dept.id
+      (user) => user.department_id === dept.id || user.department?.id === dept.id
     ).length;
+    
     return {
       ...dept,
-      directorName: director ? `${director.prenom} ${director.name}` : null,
-      employeeCount,
+      directorName: dept.description || null, // description dynamique
+      employeeCount, // nombre d'employés dynamique
+      status: dept.status || 'Actif', // statut dynamique (par défaut Actif)
     };
   });
 });
 
-const potentialDirectors = computed(() => {
-  return users.value;
-});
+// Fonction pour obtenir le nombre d'employés dans un département
+const getEmployeeCountForDepartment = (dept) => {
+  if (!dept) return 0;
+  return users.value.filter(
+    (user) => user.department_id === dept.id || user.department?.id === dept.id
+  ).length;
+};
 
 const openDialog = (dept) => {
   editedIndex.value = dept
@@ -216,13 +176,27 @@ const closeDialog = () => {
   dialog.value = false;
 };
 
-const saveDepartment = () => {
-  if (editedIndex.value > -1) {
-    departmentsStore.updateDepartment(editedDepartment.value);
-  } else {
-    departmentsStore.addDepartment(editedDepartment.value);
+const saveDepartment = async (formData) => {
+  try {
+    console.log('💾 Sauvegarde département:', formData);
+    if (editedIndex.value > -1) {
+      // Mise à jour
+      await departmentsStore.updateDepartment(formData.id, formData);
+      console.log('✅ Département mis à jour avec succès');
+    } else {
+      // Création
+      await departmentsStore.addDepartment(formData);
+      console.log('✅ Département créé avec succès');
+    }
+    closeDialog();
+    
+    // Recharger les données
+    await departmentsStore.fetchDepartments();
+  } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde du département:', error);
+    // Ici on pourrait ajouter une notification d'erreur pour l'utilisateur
+    // toast.error('Erreur lors de la sauvegarde du département: ' + error.message);
   }
-  closeDialog();
 };
 
 const confirmDelete = (dept) => {
@@ -230,11 +204,21 @@ const confirmDelete = (dept) => {
   dialogDelete.value = true;
 };
 
-const deleteDept = () => {
-  if (departmentToDelete.value) {
-    departmentsStore.deleteDepartment(departmentToDelete.value.id);
+const deleteDept = async (dept) => {
+  try {
+    console.log('🗑️ Suppression département:', dept);
+    await departmentsStore.deleteDepartment(dept.id);
+    console.log('✅ Département supprimé avec succès');
+    closeDeleteDialog();
+    
+    // Recharger les données
+    await departmentsStore.fetchDepartments();
+    await usersStore.fetchUsers(1, 100, '', true);
+  } catch (error) {
+    console.error('❌ Erreur lors de la suppression du département:', error);
+    // Ici on pourrait ajouter une notification d'erreur pour l'utilisateur
+    // toast.error('Erreur lors de la suppression du département: ' + error.message);
   }
-  closeDeleteDialog();
 };
 
 const closeDeleteDialog = () => {
@@ -247,8 +231,9 @@ onMounted(async () => {
   console.log('🏢 Chargement de la vue départements...');
   try {
     await departmentsStore.fetchDepartments();
-    await usersStore.fetchUsers(); // Pour avoir les utilisateurs pour les directeurs
-    console.log('✅ Départements chargés:', departmentsStore.departments.length);
+    await usersStore.fetchUsers(1, 100, '', true); // Forcer le rechargement avec plus d'utilisateurs
+    console.log('✅ Départements chargés:', departments.value.length);
+    console.log('✅ Utilisateurs chargés:', users.value.length);
   } catch (error) {
     console.error('❌ Erreur chargement départements:', error);
   }

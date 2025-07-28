@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('description')->nullable();
             $table->string('code')->unique();
-            $table->decimal('budget', 15, 2)->nullable();
+            // $table->decimal('budget', 15, 2)->nullable();
             $table->unsignedBigInteger('manager_id')->nullable();
             $table->timestamps();
             

@@ -81,14 +81,21 @@ const login = async () => {
       // Extraction directe du rôle utilisateur depuis l'API
       let userRole = 'Employe'; // Valeur par défaut
 
-      if (userData.role && userData.role.name) {
-        userRole = userData.role.name;
+      if (userData.role) {
+        // Support pour les deux formats de rôle
+        userRole = userData.role.name || userData.role.nom || 'Employe';
       }
+      
+      console.log('✅ Connexion réussie:', {
+        user: userData.email,
+        role: userRole
+      });
       
       // Rediriger vers le tableau de bord approprié
       redirectToDashboard(userRole);
     } else {
       error.value = result.error || 'Erreur de connexion';
+      console.error('❌ Échec de connexion:', result.error);
     }
   } catch (err) {
     console.error('Erreur de connexion:', err);

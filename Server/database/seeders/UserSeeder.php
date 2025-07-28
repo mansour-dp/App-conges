@@ -45,11 +45,11 @@ class UserSeeder extends Seeder
     private function createDepartments(): void
     {
         $departments = [
-            ['name' => 'Direction Générale', 'code' => 'DIR', 'description' => 'Direction générale de l\'entreprise', 'budget' => 1000000.00],
-            ['name' => 'Ressources Humaines', 'code' => 'RH', 'description' => 'Département RH', 'budget' => 500000.00],
-            ['name' => 'Informatique', 'code' => 'IT', 'description' => 'Service informatique', 'budget' => 750000.00],
-            ['name' => 'Comptabilité', 'code' => 'COMPTA', 'description' => 'Service comptabilité', 'budget' => 300000.00],
-            ['name' => 'Commercial', 'code' => 'COM', 'description' => 'Service commercial', 'budget' => 600000.00],
+            ['name' => 'Direction Générale', 'code' => 'DIR', 'description' => 'Direction générale de l\'entreprise'],
+            ['name' => 'Ressources Humaines', 'code' => 'RH', 'description' => 'Département RH'],
+            ['name' => 'Informatique', 'code' => 'IT', 'description' => 'Service informatique'],
+            ['name' => 'Comptabilité', 'code' => 'COMPTA', 'description' => 'Service comptabilité'],
+            ['name' => 'Commercial', 'code' => 'COM', 'description' => 'Service commercial'],
         ];
 
         foreach ($departments as $deptData) {

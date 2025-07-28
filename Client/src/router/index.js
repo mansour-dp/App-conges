@@ -438,10 +438,89 @@ const router = createRouter({
   routes,
 });
 
-// Temporairement désactivé pour le développement frontend
-router.beforeEach((to, from, next) => {
+// Guard d'authentification
+router.beforeEach(async (to, from, next) => {
+  const { useUserStore } = await import('@/stores/users');
+  const userStore = useUserStore();
+  
+  // Routes publiques (ne nécessitent pas d'authentification)
+  const publicRoutes = ['/', '/login'];
+  const isPublicRoute = publicRoutes.includes(to.path) || to.name === 'login';
+  
+  // Si c'est une route publique, laisser passer
+  if (isPublicRoute) {
+    // Si déjà connecté et essaie d'accéder à login, rediriger vers dashboard
+    if (userStore.isLoggedIn && (to.path === '/' || to.name === 'login')) {
+      const userRole = userStore.user?.role?.name || 'Employe';
+      next(getDefaultDashboard(userRole));
+      return;
+    }
+    next();
+    return;
+  }
+  
+  // Vérifier si l'utilisateur est authentifié
+  if (!userStore.isLoggedIn) {
+    console.log('🔒 Utilisateur non authentifié, redirection vers login');
+    next('/');
+    return;
+  }
+  
+  // Vérifier l'autorisation selon le rôle
+  const userRole = userStore.user?.role?.name || 'Employe';
+  const requiredRole = getRequiredRoleForRoute(to.path);
+  
+  if (requiredRole && !hasPermission(userRole, requiredRole)) {
+    console.log('🚫 Accès refusé pour le rôle:', userRole, 'route:', to.path);
+    next(getDefaultDashboard(userRole));
+    return;
+  }
+  
   next();
 });
+
+// Fonctions utilitaires pour les guards
+function getDefaultDashboard(userRole) {
+  switch (userRole) {
+    case 'Admin':
+      return '/admin/dashboard';
+    case 'Directeur RH':
+      return '/directeur-rh/dashboard';
+    case 'Responsable RH':
+      return '/responsable-rh/dashboard';
+    case 'Directeur Unité':
+      return '/directeur-unite/dashboard';
+    case 'Superieur':
+      return '/superieur/dashboard';
+    case 'Employe':
+    default:
+      return '/employe/dashboard';
+  }
+}
+
+function getRequiredRoleForRoute(path) {
+  if (path.startsWith('/admin')) return 'Admin';
+  if (path.startsWith('/directeur-rh')) return 'Directeur RH';
+  if (path.startsWith('/responsable-rh')) return 'Responsable RH';
+  if (path.startsWith('/directeur-unite')) return 'Directeur Unité';
+  if (path.startsWith('/superieur')) return 'Superieur';
+  if (path.startsWith('/employe')) return 'Employe';
+  return null;
+}
+
+function hasPermission(userRole, requiredRole) {
+  // Hiérarchie des permissions
+  const hierarchy = {
+    'Admin': ['Admin', 'Directeur RH', 'Responsable RH', 'Directeur Unité', 'Superieur', 'Employe'],
+    'Directeur RH': ['Directeur RH', 'Responsable RH', 'Employe'],
+    'Responsable RH': ['Responsable RH', 'Employe'],
+    'Directeur Unité': ['Directeur Unité', 'Superieur', 'Employe'],
+    'Superieur': ['Superieur', 'Employe'],
+    'Employe': ['Employe']
+  };
+  
+  return hierarchy[userRole]?.includes(requiredRole) || false;
+}
 
 // Mise à jour du titre de la page
 router.afterEach((to) => {

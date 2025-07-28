@@ -13,6 +13,7 @@ class Department extends Model
         'name',
         'description',
         'code',
+        'status',
         'budget',
         'manager_id',
     ];

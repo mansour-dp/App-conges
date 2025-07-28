@@ -14,29 +14,7 @@
           class="mr-4"
           style="max-width: 400px"
           @keyup.enter="searchUsers"
-        >
-          <template v-slot:append>
-            <v-tooltip 
-              text="Recherche dans : nom, prénom, email, matricule, département, rôle, statut"
-              location="bottom"
-            >
-              <template v-slot:activator="{ props }">
-                <v-icon v-bind="props" color="grey" size="small">
-                  mdi-help-circle-outline
-                </v-icon>
-              </template>
-            </v-tooltip>
-          </template>
-        </v-text-field>
-        <v-btn
-          variant="outlined"
-          color="primary"
-          @click="refreshAllData"
-          class="mr-2"
-          title="Actualiser les données"
-        >
-          <v-icon>mdi-refresh</v-icon>
-        </v-btn>
+        ></v-text-field>
         <v-btn
           color="primary"
           @click="openDialog()"
@@ -145,39 +123,23 @@
       :user="editedUser"
       :roles="roles"
       :departments="departments"
+      :loading="usersStore.loading"
       @submit="saveUser"
     />
 
-    <!-- Confirmation Dialog for Delete -->
-    <v-dialog v-model="dialogDelete" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">
-          Confirmer la suppression
-        </v-card-title>
-        <v-card-text>
-          Êtes-vous sûr de vouloir supprimer l'utilisateur
-          <strong>{{ userToDelete?.name }} {{ userToDelete?.first_name }}</strong> ?
-          <br><br>
-          Cette action est irréversible.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn text @click="closeDeleteDialog">Annuler</v-btn>
-          <v-btn
-            color="red-darken-1"
-            variant="elevated"
-            @click="deleteUser"
-          >
-            Supprimer
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Modal de confirmation de suppression -->
+    <UserDeleteModal
+      v-model="dialogDelete"
+      :user="userToDelete"
+      :loading="usersStore.loading"
+      @confirm="deleteUser"
+    />
 
     <!-- Reset Password Modal -->
     <ResetPasswordModal
       v-model="dialogResetPassword"
       :user="userToResetPassword"
+      :loading="usersStore.loading"
       @submit="handleResetPassword"
     />
 
@@ -192,6 +154,7 @@ import { useUserStore } from "@/stores/users";
 import { useToast } from 'primevue/usetoast';
 import { storeToRefs } from "pinia";
 import UserModal from "@/components/admin/UserModal.vue";
+import UserDeleteModal from "@/components/admin/UserDeleteModal.vue";
 import ResetPasswordModal from "@/components/admin/ResetPasswordModal.vue";
 
 // Router et stores
@@ -394,8 +357,14 @@ const saveUser = async (formData) => {
     telephone: formData.phone || '',
     department_id: formData.department_id,
     role_id: formData.role_id,
+    is_active: formData.is_active,
     date_embauche: new Date().toISOString().split('T')[0]
   };
+
+  // Ajouter l'ID pour les modifications
+  if (editedIndex.value > -1 && formData.id) {
+    mappedData.id = formData.id;
+  }
 
   // Ajouter le mot de passe pour un nouvel utilisateur
   if (editedIndex.value === -1 && formData.password) {
@@ -403,9 +372,12 @@ const saveUser = async (formData) => {
   }
 
   try {
+    console.log('💾 Sauvegarde utilisateur:', formData);
     if (editedIndex.value > -1) {
       // Mise à jour utilisateur existant
+      console.log('📝 Mise à jour utilisateur ID:', formData.id);
       await usersStore.updateUser(formData.id, mappedData);
+      console.log('✅ Utilisateur mis à jour avec succès');
       toast.add({
         severity: 'success',
         summary: 'Utilisateur modifié',
@@ -414,7 +386,9 @@ const saveUser = async (formData) => {
       });
     } else {
       // Création nouvel utilisateur
+      console.log('✨ Création nouvel utilisateur');
       await usersStore.addUser(mappedData);
+      console.log('✅ Utilisateur créé avec succès');
       toast.add({
         severity: 'success',
         summary: 'Utilisateur créé',
@@ -425,6 +399,9 @@ const saveUser = async (formData) => {
     closeDialog();
     await loadAllUsers(); // Force refresh avec tous les utilisateurs
   } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde de l\'utilisateur:', error);
+    console.error('❌ Response data:', error.response?.data);
+    console.error('❌ Status:', error.response?.status);
     toast.add({
       severity: 'error',
       summary: 'Erreur de sauvegarde',
@@ -439,20 +416,25 @@ const confirmDelete = (user) => {
   dialogDelete.value = true;
 };
 
-const deleteUser = async () => {
-  if (!userToDelete.value) return;
+const deleteUser = async (user) => {
+  if (!user) return;
 
   try {
-    await usersStore.removeUser(userToDelete.value.id);
+    console.log('🗑️ Suppression utilisateur:', user);
+    await usersStore.removeUser(user.id);
+    console.log('✅ Utilisateur supprimé avec succès');
     toast.add({
       severity: 'success',
       summary: 'Utilisateur supprimé',
-      detail: `${userToDelete.value.first_name} ${userToDelete.value.name} a été retiré du système avec succès.`,
+      detail: `${user.first_name} ${user.name} a été retiré du système avec succès.`,
       life: 3000
     });
     closeDeleteDialog();
     await loadAllUsers(); // Force refresh avec tous les utilisateurs
   } catch (error) {
+    console.error('❌ Erreur lors de la suppression de l\'utilisateur:', error);
+    console.error('❌ Response data:', error.response?.data);
+    console.error('❌ Status:', error.response?.status);
     toast.add({
       severity: 'error',
       summary: 'Erreur de suppression',
@@ -504,8 +486,10 @@ const resetPassword = (user) => {
 
 const handleResetPassword = async (passwordData) => {
   try {
+    console.log('🔑 Réinitialisation mot de passe pour:', userToResetPassword.value);
     // Mettre à jour le store pour envoyer les données du mot de passe
     await usersStore.resetUserPasswordWithData(userToResetPassword.value.id, passwordData);
+    console.log('✅ Mot de passe réinitialisé avec succès');
 
     toast.add({
       severity: 'success',
@@ -518,6 +502,9 @@ const handleResetPassword = async (passwordData) => {
     dialogResetPassword.value = false;
     userToResetPassword.value = null;
   } catch (error) {
+    console.error('❌ Erreur lors de la réinitialisation du mot de passe:', error);
+    console.error('❌ Response data:', error.response?.data);
+    console.error('❌ Status:', error.response?.status);
     toast.add({
       severity: 'error',
       summary: 'Erreur de réinitialisation',
@@ -537,21 +524,6 @@ const loadUsers = async (forceRefresh = false) => {
     );
   } catch (error) {
     // Chargement silencieux - pas de toast pour cette action
-  }
-};
-
-// Fonction pour forcer le refresh de toutes les données
-const refreshAllData = async () => {
-  try {
-    const promises = [
-      usersStore.fetchRoles(true),
-      usersStore.fetchDepartments(true),
-      loadAllUsers() // Charger tous les utilisateurs
-    ];
-    await Promise.all(promises);
-    // Suppression du toast - action silencieuse
-  } catch (error) {
-    // Suppression du toast - gestion d'erreur silencieuse
   }
 };
 
