@@ -14,21 +14,13 @@ class Holiday extends Model
         'date',
         'type',
         'description',
-        'is_recurring',
-        'is_active'
+        'is_recurring'
     ];
 
     protected $casts = [
         'date' => 'date',
         'is_recurring' => 'boolean',
-        'is_active' => 'boolean',
     ];
-
-    // Scope pour les jours fériés actifs
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
 
     // Scope pour un type spécifique
     public function scopeOfType($query, $type)

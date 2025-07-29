@@ -60,7 +60,15 @@
         {{ error }}
       </v-alert>
 
+      <!-- Skeleton Loader pour les utilisateurs -->
+      <v-skeleton-loader
+        v-if="loadingUsers"
+        type="table-row@5"
+        class="ma-4"
+      ></v-skeleton-loader>
+
       <v-data-table
+        v-else
         :headers="headers"
         :items="filteredUsers"
         :items-per-page="itemsPerPage"
@@ -209,6 +217,9 @@ const userToResetPassword = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const editedIndex = ref(-1);
+
+// Loading state for skeleton loader
+const loadingUsers = ref(true);
 
 // Variables pour la simulation d'utilisateur
 const selectedUserForSimulation = ref(null);
@@ -686,9 +697,16 @@ watch(search, (newVal, oldVal) => {
 
 // Load initial data
 onMounted(() => {
-  loadAllUsers(); // Charger tous les utilisateurs
-  usersStore.fetchRoles();
-  usersStore.fetchDepartments();
+  // Démarre le skeleton loader
+  loadingUsers.value = true;
+  
+  // Simule un délai de 1 seconde avant de charger les données
+  setTimeout(async () => {
+    await loadAllUsers(); // Charger tous les utilisateurs
+    usersStore.fetchRoles();
+    usersStore.fetchDepartments();
+    loadingUsers.value = false;
+  }, 1000);
   
   // Test toast au chargement
   setTimeout(() => {

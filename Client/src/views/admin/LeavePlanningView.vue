@@ -43,7 +43,15 @@
               </v-btn>
             </div>
 
+            <!-- Skeleton Loader pour les plans de congés -->
+            <v-skeleton-loader
+              v-if="loadingPlans"
+              type="table-row@5"
+              class="mb-4"
+            ></v-skeleton-loader>
+
             <v-data-table
+              v-else
               :headers="leavePlanHeaders"
               :items="leavePlansStore.leavePlans"
               :search="leavePlanSearch"
@@ -110,7 +118,15 @@
               </v-btn>
             </div>
 
+            <!-- Skeleton Loader pour les jours fériés -->
+            <v-skeleton-loader
+              v-if="loadingHolidays"
+              type="table-row@5"
+              class="mb-4"
+            ></v-skeleton-loader>
+
             <v-data-table
+              v-else
               :headers="holidayHeaders"
               :items="holidaysStore.holidays"
               :search="holidaySearch"
@@ -129,15 +145,6 @@
                   size="small"
                 >
                   {{ getHolidayTypeLabel(item.type) }}
-                </v-chip>
-              </template>
-              <template v-slot:item.is_active="{ item }">
-                <v-chip
-                  :color="item.is_active ? 'success' : 'warning'"
-                  variant="tonal"
-                  size="small"
-                >
-                  {{ item.is_active ? 'Actif' : 'Inactif' }}
                 </v-chip>
               </template>
               <template v-slot:item.actions="{ item }">
@@ -209,6 +216,10 @@ const toast = useToast();
 // Onglets
 const activeTab = ref('plans');
 
+// Loading states for skeleton loaders
+const loadingPlans = ref(true);
+const loadingHolidays = ref(true);
+
 // Dialogs
 const leavePlanDialog = ref(false);
 const deleteLeavePlanDialog = ref(false);
@@ -237,7 +248,6 @@ const holidayHeaders = [
   { title: "Nom", key: "name" },
   { title: "Date", key: "date" },
   { title: "Type", key: "type" },
-  { title: "Statut", key: "is_active" },
   { title: "Actions", key: "actions", sortable: false },
 ];
 
@@ -431,10 +441,26 @@ const deleteHoliday = async () => {
 // Initialisation
 onMounted(async () => {
   try {
-    await leavePlansStore.fetchLeavePlans();
-    await holidaysStore.fetchHolidays();
+    // Démarre les skeleton loaders
+    loadingPlans.value = true;
+    loadingHolidays.value = true;
+
+    // Simule un délai de 1 seconde avant de charger les données
+    setTimeout(async () => {
+      await leavePlansStore.fetchLeavePlans();
+      loadingPlans.value = false;
+    }, 1000);
+
+    setTimeout(async () => {
+      await holidaysStore.fetchHolidays();
+      loadingHolidays.value = false;
+    }, 1000);
+
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error);
+    // Arrête les loaders même en cas d'erreur
+    loadingPlans.value = false;
+    loadingHolidays.value = false;
   }
 });
 </script>

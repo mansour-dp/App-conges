@@ -23,11 +23,7 @@ export const useHolidaysStore = defineStore("holidays", {
       return state.holidays.filter(holiday => holiday.type === type);
     },
     
-    totalHolidays: (state) => state.holidays.length,
-    
-    activeHolidays: (state) => {
-      return state.holidays.filter(holiday => holiday.is_active);
-    }
+    totalHolidays: (state) => state.holidays.length
   },
 
   actions: {

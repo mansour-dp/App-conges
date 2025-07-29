@@ -23,7 +23,15 @@
         </v-btn>
       </v-card-title>
 
+      <!-- Skeleton Loader pour les départements -->
+      <v-skeleton-loader
+        v-if="loadingDepartments"
+        type="table-row@5"
+        class="ma-4"
+      ></v-skeleton-loader>
+
       <v-data-table
+        v-else
         :headers="headers"
         :items="computedDepartments"
         :search="search"
@@ -112,6 +120,9 @@ const search = ref("");
 const dialog = ref(false);
 const dialogDelete = ref(false);
 const departmentToDelete = ref(null);
+
+// Loading state for skeleton loader
+const loadingDepartments = ref(true);
 
 const editedIndex = ref(-1);
 const editedDepartment = ref(null);
@@ -229,7 +240,7 @@ const deleteDept = async (dept) => {
     await departmentsStore.fetchDepartments();
     await usersStore.fetchUsers(1, 100, '', true);
   } catch (error) {
-    console.error('❌ Erreur lors de la suppression du département:', error);
+    
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -246,15 +257,21 @@ const closeDeleteDialog = () => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('🏢 Chargement de la vue départements...');
-  try {
-    await departmentsStore.fetchDepartments();
-    await usersStore.fetchUsers(1, 100, '', true); // Forcer le rechargement avec plus d'utilisateurs
-    console.log('✅ Départements chargés:', departments.value.length);
-    console.log('✅ Utilisateurs chargés:', users.value.length);
-  } catch (error) {
-    console.error('❌ Erreur chargement départements:', error);
-  }
+  
+  
+  // Démarre le skeleton loader
+  loadingDepartments.value = true;
+  
+  // Simule un délai de 1 seconde avant de charger les données
+  setTimeout(async () => {
+    try {
+      await departmentsStore.fetchDepartments();
+      await usersStore.fetchUsers(1, 100, '', true); 
+    } catch (error) {
+    } finally {
+      loadingDepartments.value = false;
+    }
+  }, 1000);
 });
 </script>
 

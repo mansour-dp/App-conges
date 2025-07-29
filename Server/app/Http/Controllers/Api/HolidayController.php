@@ -41,8 +41,7 @@ class HolidayController extends Controller
                 'date' => 'required|date',
                 'type' => ['required', Rule::in(['national', 'religious', 'local', 'company'])],
                 'description' => 'nullable|string',
-                'is_recurring' => 'boolean',
-                'is_active' => 'boolean'
+                'is_recurring' => 'boolean'
             ]);
 
             $holiday = Holiday::create($validated);
@@ -88,8 +87,7 @@ class HolidayController extends Controller
                 'date' => 'required|date',
                 'type' => ['required', Rule::in(['national', 'religious', 'local', 'company'])],
                 'description' => 'nullable|string',
-                'is_recurring' => 'boolean',
-                'is_active' => 'boolean'
+                'is_recurring' => 'boolean'
             ]);
 
             $holiday->update($validated);
