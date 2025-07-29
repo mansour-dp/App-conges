@@ -43,9 +43,7 @@ class DepartmentController extends Controller
                 'name' => 'required|string|max:255|unique:departments,name',
                 'code' => 'required|string|max:10|unique:departments,code',
                 'description' => 'nullable|string',
-                'status' => 'required|in:Actif,Inactif',
                 'manager_id' => 'nullable|exists:users,id',
-                'budget' => 'nullable|numeric|min:0',
             ]);
 
             $department = Department::create($validated);
@@ -103,9 +101,7 @@ class DepartmentController extends Controller
                 'name' => 'required|string|max:255|unique:departments,name,' . $department->id,
                 'code' => 'required|string|max:10|unique:departments,code,' . $department->id,
                 'description' => 'nullable|string',
-                'status' => 'required|in:Actif,Inactif',
                 'manager_id' => 'nullable|exists:users,id',
-                'budget' => 'nullable|numeric|min:0',
             ]);
 
             $department->update($validated);

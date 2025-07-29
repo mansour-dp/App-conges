@@ -8,6 +8,19 @@
       ></v-btn>
       <v-toolbar-title class="text-center">{{ pageTitle }}</v-toolbar-title>
       <div class="toolbar-actions">
+        <!-- Bouton retour admin si simulation active -->
+        <v-btn
+          v-if="isSimulationActive"
+          color="primary"
+          variant="elevated"
+          @click="returnToAdmin"
+          prepend-icon="mdi-account-switch"
+          class="mr-2"
+          size="small"
+        >
+          Retour Admin
+        </v-btn>
+
         <v-menu offset-y max-width="400">
           <template #activator="{ props }">
             <v-btn icon v-bind="props">
@@ -78,6 +91,7 @@
             </v-list-item>
           </v-list>
         </v-menu>
+        
         <v-btn icon @click="logout" class="logout-btn-toolbar">
           <v-icon>mdi-logout</v-icon>
         </v-btn>
@@ -87,13 +101,91 @@
 </template>
 
 <script>
+import { computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUsersStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 
 export default {
   name: "DashboardToolbar",
   setup() {
+    const router = useRouter()
+    const authStore = useUsersStore()
     const notificationsStore = useNotificationsStore()
-    return { notificationsStore }
+    
+    // Vérifier si une simulation est active
+    const isSimulationActive = computed(() => {
+      const hasBackup = localStorage.getItem('admin_token_backup') !== null
+      const currentUser = authStore.currentUser
+      const currentUserRole = currentUser?.role?.name || currentUser?.role || 'Employe'
+      
+      // Le bouton doit apparaître si:
+      // 1. Il y a un token admin sauvegardé (simulation active)
+      // 2. ET l'utilisateur actuel n'est PAS un admin
+      return hasBackup && currentUserRole !== 'Admin'
+    })
+
+    // Gestion de la navigation arrière pendant la simulation
+    const handlePopState = (event) => {
+      if (isSimulationActive.value) {
+        // Empêcher la navigation arrière pendant la simulation
+        event.preventDefault()
+        // Rester sur la page actuelle
+        history.pushState(null, '', window.location.href)
+      }
+    }
+
+    // Ajouter le listener au montage
+    onMounted(() => {
+      if (isSimulationActive.value) {
+        // Ajouter une entrée dans l'historique pour empêcher le retour
+        history.pushState(null, '', window.location.href)
+        window.addEventListener('popstate', handlePopState)
+      }
+    })
+
+    // Nettoyer le listener au démontage
+    onUnmounted(() => {
+      window.removeEventListener('popstate', handlePopState)
+    })
+    
+    const returnToAdmin = () => {
+      const adminToken = localStorage.getItem('admin_token_backup')
+      const adminUser = localStorage.getItem('admin_user_backup')
+      
+      if (adminToken && adminUser) {
+        try {
+          // Restaurer les données admin
+          const userData = JSON.parse(adminUser)
+          
+          localStorage.setItem('auth_token', adminToken)
+          localStorage.setItem('user', adminUser)
+          localStorage.setItem('user_role', userData.role?.name || 'Admin')
+          
+          // Nettoyer les sauvegardes
+          localStorage.removeItem('admin_token_backup')
+          localStorage.removeItem('admin_user_backup')
+          
+          // Mettre à jour le store d'authentification
+          authStore.currentUser = userData
+          authStore.token = adminToken
+          authStore.isAuthenticated = true
+          
+          // Rediriger vers la page de gestion des utilisateurs (replace pour éviter navigation arrière)
+          router.replace('/admin/users')
+        } catch (error) {
+          console.error('Erreur lors du retour admin:', error)
+          // En cas d'erreur, rediriger vers la page de connexion
+          router.replace('/')
+        }
+      }
+    }
+    
+    return { 
+      notificationsStore,
+      isSimulationActive,
+      returnToAdmin
+    }
   },
   props: {
     pageTitle: {

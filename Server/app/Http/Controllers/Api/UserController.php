@@ -262,4 +262,53 @@ class UserController extends Controller
 
         return response()->json($response);
     }
+
+    /**
+     * Simuler la connexion d'un utilisateur (Admin uniquement)
+     */
+    public function simulateLogin(User $user)
+    {
+        $admin = auth()->user();
+        
+        // Vérifier que l'utilisateur connecté est un admin
+        if (!$admin || $admin->role->nom !== 'Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Accès refusé. Seuls les administrateurs peuvent utiliser cette fonctionnalité.',
+            ], 403);
+        }
+
+        // Vérifier que l'utilisateur à simuler existe et est actif
+        if (!$user->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de simuler un utilisateur inactif.',
+            ], 400);
+        }
+
+        // Générer un token pour l'utilisateur à simuler
+        $token = $user->createToken('SimulatedByAdmin_' . $admin->id)->plainTextToken;
+
+        // Log de l'action pour audit (optionnel)
+        \Log::info('User simulation', [
+            'admin_id' => $admin->id,
+            'admin_email' => $admin->email,
+            'simulated_user_id' => $user->id,
+            'simulated_user_email' => $user->email,
+            'timestamp' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Simulation activée avec succès',
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role->nom ?? 'Non défini',
+            ],
+        ]);
+    }
 }

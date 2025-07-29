@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\LeavePlanController;
+use App\Http\Controllers\Api\HolidayController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
     Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus']);
     Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword']);
+    Route::post('/users/{user}/simulate-login', [UserController::class, 'simulateLogin']);
     Route::get('/managers', [UserController::class, 'getManagers']);
 //    localhost:8000/users?page=1&limit=10
     // Gestion des rôles
@@ -56,6 +59,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gestion des départements
     Route::apiResource('departments', DepartmentController::class);
     Route::get('/departments/{department}/stats', [DepartmentController::class, 'stats']);
+
+    // Gestion des périodes de congés et jours fériés (Admin)
+    Route::apiResource('leave-plans', LeavePlanController::class);
+    Route::apiResource('holidays', HolidayController::class);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

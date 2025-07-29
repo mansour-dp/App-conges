@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         // Appeler le UserSeeder 
         $this->call([
             UserSeeder::class,
+            LeavePlansAndHolidaysSeeder::class,
         ]);
     }
 }

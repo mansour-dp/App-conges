@@ -56,29 +56,6 @@
               rows="3"
               placeholder="Description du département..."
             />
-
-            <div class="status-section">
-              <p class="status-title">
-                <v-icon icon="mdi-toggle-switch" size="18"></v-icon>
-                Statut du département
-              </p>
-              <v-radio-group
-                v-model="form.status"
-                inline
-                hide-details
-              >
-                <v-radio
-                  label="Actif"
-                  value="Actif"
-                  color="success"
-                ></v-radio>
-                <v-radio
-                  label="Inactif"
-                  value="Inactif"
-                  color="warning"
-                ></v-radio>
-              </v-radio-group>
-            </div>
           </div>
         </v-form>
       </v-card-text>
@@ -137,7 +114,7 @@ export default {
         v => !!v || 'Le code du département est requis',
         v => (v && v.length >= 2) || 'Le code doit contenir au moins 2 caractères',
         v => (v && v.length <= 10) || 'Le code ne peut pas dépasser 10 caractères',
-        v => (v && /^[A-Z0-9]+$/.test(v)) || 'Le code doit contenir uniquement des lettres majuscules et des chiffres',
+        v => (v && /^[A-Z0-9-_]+$/i.test(v)) || 'Le code doit contenir uniquement des lettres, chiffres, tirets et underscores',
       ],
       descriptionRules: [
         v => !v || v.length <= 500 || 'La description ne peut pas dépasser 500 caractères',
@@ -173,7 +150,7 @@ export default {
         name: '',
         code: '',
         description: '',
-        status: 'Actif'
+        manager_id: null
       };
     },
     
@@ -184,7 +161,7 @@ export default {
           name: this.department.name || '',
           code: this.department.code || '',
           description: this.department.description || '',
-          status: this.department.status || 'Actif'
+          manager_id: this.department.manager_id || null
         };
       } else {
         // Mode création

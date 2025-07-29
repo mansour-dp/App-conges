@@ -4,6 +4,30 @@
       <v-card-title class="d-flex align-center pa-4">
         <span class="text-h5 font-weight-bold">Gestion des Utilisateurs</span>
         <v-spacer></v-spacer>
+        
+        <!-- Section Simulation Utilisateur -->
+        <div class="d-flex align-center mr-4">
+          <v-chip
+            v-if="selectedUserForSimulation"
+            color="primary"
+            variant="outlined"
+            class="mr-2"
+            prepend-icon="mdi-account-circle"
+          >
+            {{ getSelectedUserName() }}
+          </v-chip>
+          <v-btn
+            color="primary"
+            :disabled="!selectedUserForSimulation || simulationLoading"
+            :loading="simulationLoading"
+            @click="simulateUser"
+            prepend-icon="mdi-account-switch"
+            variant="elevated"
+          >
+            Simuler
+          </v-btn>
+        </div>
+        
         <v-text-field
           v-model="search"
           append-inner-icon="mdi-magnify"
@@ -44,6 +68,8 @@
         class="elevation-0"
         hover
         no-data-text="Aucun utilisateur trouvé"
+        @click:row="selectUserForSimulation"
+        :row-props="getRowProps"
       >
         <template v-slot:item.role="{ item }">
           <v-chip :color="getRoleColor(item.role?.nom || 'N/A')" dark small>
@@ -151,8 +177,10 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useUsersAdminStore } from "@/stores/usersAdmin";
 import { useUserStore } from "@/stores/users";
+import { useUsersStore } from "@/stores/auth";
 import { useToast } from 'primevue/usetoast';
 import { storeToRefs } from "pinia";
+import { usersApi } from "@/services/api";
 import UserModal from "@/components/admin/UserModal.vue";
 import UserDeleteModal from "@/components/admin/UserDeleteModal.vue";
 import ResetPasswordModal from "@/components/admin/ResetPasswordModal.vue";
@@ -161,6 +189,7 @@ import ResetPasswordModal from "@/components/admin/ResetPasswordModal.vue";
 const router = useRouter();
 const usersStore = useUsersAdminStore();
 const userStore = useUserStore();
+const authStore = useUsersStore();
 const toast = useToast();
 const {
   users,
@@ -180,6 +209,10 @@ const userToResetPassword = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const editedIndex = ref(-1);
+
+// Variables pour la simulation d'utilisateur
+const selectedUserForSimulation = ref(null);
+const simulationLoading = ref(false);
 
 const editedUser = ref({
   id: null,
@@ -247,6 +280,11 @@ const filteredUsers = computed(() => {
   });
 });
 
+// Computed property pour obtenir tous les utilisateurs actifs pour la simulation
+const allUsers = computed(() => {
+  return users.value.filter(user => user.is_active);
+});
+
 // Table headers configuration
 const headers = ref([
   { title: "Nom", key: "name", align: "start", sortable: false },
@@ -281,8 +319,118 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('fr-FR');
 };
 
+// Méthodes pour la simulation d'utilisateur
+const selectUserForSimulation = (event, { item }) => {
+  selectedUserForSimulation.value = item.id;
+};
+
+const getSelectedUserName = () => {
+  if (!selectedUserForSimulation.value) return '';
+  const user = allUsers.value.find(u => u.id === selectedUserForSimulation.value);
+  return user ? `${user.first_name} ${user.name}` : '';
+};
+
+const getRowProps = ({ item }) => {
+  return {
+    class: selectedUserForSimulation.value === item.id ? 'user-selected' : '',
+  };
+};
+
 const clearError = () => {
   usersStore.error = null;
+};
+
+// Fonction pour rediriger vers le dashboard approprié selon le rôle
+const redirectToDashboard = (userRole) => {
+  // Correspondance directe avec les rôles exacts de la base de données
+  // Utilise replace() pour éviter les problèmes de navigation arrière pendant la simulation
+  switch (userRole) {
+    case 'Admin':
+      router.replace('/admin/dashboard');
+      break;
+    case 'Directeur RH':
+      router.replace('/directeur-rh/dashboard');
+      break;
+    case 'Responsable RH':
+      router.replace('/responsable-rh/dashboard');
+      break;
+    case 'Directeur Unité':
+      router.replace('/directeur-unite/dashboard');
+      break;
+    case 'Superieur':
+      router.replace('/superieur/dashboard');
+      break;
+    case 'Employe':
+    default:
+      router.replace('/employe/dashboard');
+      break;
+  }
+};
+
+// Méthode pour simuler la connexion d'un utilisateur
+const simulateUser = async () => {
+  if (!selectedUserForSimulation.value) {
+    toast.add({
+      severity: 'warning',
+      summary: 'Attention',
+      detail: 'Veuillez sélectionner un utilisateur à simuler.',
+      life: 3000
+    });
+    return;
+  }
+  
+  simulationLoading.value = true;
+  
+  try {
+    const response = await usersApi.simulateLogin(selectedUserForSimulation.value);
+    
+    if (response.data.success && response.data.token) {
+      // Sauvegarder le token de l'admin pour pouvoir revenir plus tard
+      const currentToken = localStorage.getItem('auth_token');
+      const currentUser = localStorage.getItem('user');
+      localStorage.setItem('admin_token_backup', currentToken);
+      localStorage.setItem('admin_user_backup', currentUser);
+      
+      // Mettre à jour l'authentification avec les données de l'utilisateur simulé
+      const userData = response.data.user;
+      const userRole = userData.role?.name || userData.role || 'Employe';
+      
+      // Sauvegarder les nouvelles données
+      localStorage.setItem('auth_token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user_role', userRole);
+      
+      // Mettre à jour le store d'authentification
+      authStore.currentUser = userData;
+      authStore.token = response.data.token;
+      authStore.isAuthenticated = true;
+      
+      // Afficher un message de succès
+      toast.add({
+        severity: 'success',
+        summary: 'Simulation activée',
+        detail: `Vous êtes maintenant connecté en tant que ${userData.first_name} ${userData.name}`,
+        life: 4000
+      });
+      
+      // Rediriger vers le dashboard approprié selon le rôle
+      setTimeout(() => {
+        redirectToDashboard(userRole);
+      }, 1000);
+    } else {
+      throw new Error(response.data.message || 'Erreur lors de la simulation');
+    }
+  } catch (error) {
+    console.error('Erreur simulation utilisateur:', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur de simulation',
+      detail: error.response?.data?.message || 'Impossible de simuler cet utilisateur. Veuillez réessayer.',
+      life: 5000
+    });
+  } finally {
+    simulationLoading.value = false;
+  }
 };
 
 const openDialog = (user) => {
@@ -564,3 +712,26 @@ const loadAllUsers = async () => {
 };
 
 </script>
+
+<style scoped>
+.user-management-view {
+  padding: 20px;
+}
+
+.user-selected {
+  background-color: #e3f2fd !important;
+  border-left: 4px solid #1976d2 !important;
+}
+
+.user-selected:hover {
+  background-color: #bbdefb !important;
+}
+
+.v-data-table tbody tr {
+  cursor: pointer;
+}
+
+.v-data-table tbody tr:hover {
+  background-color: #f5f5f5 !important;
+}
+</style>

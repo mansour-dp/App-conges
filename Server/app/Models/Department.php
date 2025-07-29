@@ -13,13 +13,7 @@ class Department extends Model
         'name',
         'description',
         'code',
-        'status',
-        'budget',
         'manager_id',
-    ];
-
-    protected $casts = [
-        'budget' => 'decimal:2',
     ];
 
     public function users()

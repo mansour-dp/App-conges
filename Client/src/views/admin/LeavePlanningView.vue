@@ -2,198 +2,454 @@
   <v-container fluid class="leave-planning-view">
     <v-card class="rounded-lg" elevation="2">
       <v-card-title class="d-flex align-center pa-4">
-        <span class="text-h5 font-weight-bold">Planification Annuelle</span>
-        <v-spacer></v-spacer>
-        <v-btn
-          color="primary"
-          @click="openActiveDialog"
-          prepend-icon="mdi-plus-circle"
-          :key="tab"
-        >
-          Ajouter {{ tab === "plans" ? "une période" : "un jour férié" }}
-        </v-btn>
+        <v-icon icon="mdi-calendar-month" class="mr-2" color="primary"></v-icon>
+        <span class="text-h5 font-weight-bold">Planification des Congés</span>
       </v-card-title>
 
-      <v-tabs v-model="tab" color="primary" align-tabs="center" class="mb-4">
-        <v-tab value="plans">Périodes de Congé</v-tab>
-        <v-tab value="holidays">Jours Fériés</v-tab>
+      <v-tabs v-model="activeTab" bg-color="primary" color="white" centered>
+        <v-tab value="plans">
+          <v-icon class="mr-2">mdi-calendar-account</v-icon>
+          Plans de Congés
+        </v-tab>
+        <v-tab value="holidays">
+          <v-icon class="mr-2">mdi-calendar-star</v-icon>
+          Jours Fériés
+        </v-tab>
       </v-tabs>
 
-      <v-window v-model="tab">
-        <v-window-item value="plans">
-          <v-data-table
-            :headers="planHeaders"
-            :items="leavePlans"
-            class="elevation-0"
-          >
-            <template v-slot:item.actions="{ item }">
-              <v-icon small class="mr-2" @click="openPlanDialog(item)"
-                >mdi-pencil</v-icon
+      <v-card-text>
+        <v-tabs-window v-model="activeTab">
+          <!-- Onglet Plans de Congés -->
+          <v-tabs-window-item value="plans">
+            <div class="d-flex justify-space-between align-center mb-4">
+              <v-text-field
+                v-model="leavePlanSearch"
+                label="Rechercher une période de congés..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                density="comfortable"
+                clearable
+                hide-details
+                style="max-width: 400px"
+              />
+              
+              <v-btn
+                color="primary"
+                @click="openLeavePlanDialog()"
+                prepend-icon="mdi-plus-circle"
+                variant="elevated"
               >
-              <v-icon small @click="deletePlan(item.id)">mdi-delete</v-icon>
-            </template>
-          </v-data-table>
-        </v-window-item>
+                Ajouter une période
+              </v-btn>
+            </div>
 
-        <v-window-item value="holidays">
-          <v-data-table
-            :headers="holidayHeaders"
-            :items="holidays"
-            class="elevation-0"
-          >
-            <template v-slot:item.actions="{ item }">
-              <v-icon small class="mr-2" @click="openHolidayDialog(item)"
-                >mdi-pencil</v-icon
+            <v-data-table
+              :headers="leavePlanHeaders"
+              :items="leavePlansStore.leavePlans"
+              :search="leavePlanSearch"
+              :items-per-page="10"
+              class="elevation-0"
+              hover
+              no-data-text="Aucune période de congés trouvée"
+            >
+              <template v-slot:item.start_date="{ item }">
+                {{ formatDate(item.start_date) }}
+              </template>
+              <template v-slot:item.end_date="{ item }">
+                {{ formatDate(item.end_date) }}
+              </template>
+              <template v-slot:item.leave_type="{ item }">
+                <v-chip
+                  :color="getTypeColor(item.leave_type)"
+                  variant="tonal"
+                  size="small"
+                >
+                  {{ getTypeLabel(item.leave_type) }}
+                </v-chip>
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-btn
+                  size="small"
+                  variant="text"
+                  icon="mdi-pencil"
+                  color="primary"
+                  @click="openLeavePlanDialog(item)"
+                ></v-btn>
+                <v-btn
+                  size="small"
+                  variant="text"
+                  icon="mdi-delete"
+                  color="error"
+                  @click="openDeleteLeavePlanDialog(item)"
+                ></v-btn>
+              </template>
+            </v-data-table>
+          </v-tabs-window-item>
+
+          <!-- Onglet Jours Fériés -->
+          <v-tabs-window-item value="holidays">
+            <div class="d-flex justify-space-between align-center mb-4">
+              <v-text-field
+                v-model="holidaySearch"
+                label="Rechercher un jour férié..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                density="comfortable"
+                clearable
+                hide-details
+                style="max-width: 400px"
+              />
+              
+              <v-btn
+                color="primary"
+                @click="openHolidayDialog()"
+                prepend-icon="mdi-plus-circle"
+                variant="elevated"
               >
-              <v-icon small @click="deleteHoliday(item.id)">mdi-delete</v-icon>
-            </template>
-          </v-data-table>
-        </v-window-item>
-      </v-window>
+                Ajouter un jour férié
+              </v-btn>
+            </div>
+
+            <v-data-table
+              :headers="holidayHeaders"
+              :items="holidaysStore.holidays"
+              :search="holidaySearch"
+              :items-per-page="10"
+              class="elevation-0"
+              hover
+              no-data-text="Aucun jour férié trouvé"
+            >
+              <template v-slot:item.date="{ item }">
+                {{ formatDate(item.date) }}
+              </template>
+              <template v-slot:item.type="{ item }">
+                <v-chip
+                  :color="getHolidayTypeColor(item.type)"
+                  variant="tonal"
+                  size="small"
+                >
+                  {{ getHolidayTypeLabel(item.type) }}
+                </v-chip>
+              </template>
+              <template v-slot:item.is_active="{ item }">
+                <v-chip
+                  :color="item.is_active ? 'success' : 'warning'"
+                  variant="tonal"
+                  size="small"
+                >
+                  {{ item.is_active ? 'Actif' : 'Inactif' }}
+                </v-chip>
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-btn
+                  size="small"
+                  variant="text"
+                  icon="mdi-pencil"
+                  color="primary"
+                  @click="openHolidayDialog(item)"
+                ></v-btn>
+                <v-btn
+                  size="small"
+                  variant="text"
+                  icon="mdi-delete"
+                  color="error"
+                  @click="openDeleteHolidayDialog(item)"
+                ></v-btn>
+              </template>
+            </v-data-table>
+          </v-tabs-window-item>
+        </v-tabs-window>
+      </v-card-text>
     </v-card>
 
-    <!-- Dialog pour les Périodes de Congé -->
-    <v-dialog v-model="planDialog" max-width="500px">
-      <v-card>
-        <v-card-title>{{ planFormTitle }}</v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="editedPlan.name"
-            label="Nom de la période"
-          ></v-text-field>
-          <v-text-field
-            v-model="editedPlan.startDate"
-            label="Date de début"
-            type="date"
-          ></v-text-field>
-          <v-text-field
-            v-model="editedPlan.endDate"
-            label="Date de fin"
-            type="date"
-          ></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn text @click="closePlanDialog">Annuler</v-btn>
-          <v-btn color="primary" @click="savePlan">Sauvegarder</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Modals professionnels -->
+    <LeavePlanModal
+      v-model="leavePlanDialog"
+      :leave-plan="selectedLeavePlan"
+      :loading="leavePlansStore.loading"
+      @submit="handleLeavePlanSubmit"
+    />
 
-    <!-- Dialog pour les Jours Fériés -->
-    <v-dialog v-model="holidayDialog" max-width="500px">
-      <v-card>
-        <v-card-title>{{ holidayFormTitle }}</v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="editedHoliday.name"
-            label="Nom du jour férié"
-          ></v-text-field>
-          <v-text-field
-            v-model="editedHoliday.date"
-            label="Date"
-            type="date"
-          ></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn text @click="closeHolidayDialog">Annuler</v-btn>
-          <v-btn color="primary" @click="saveHoliday">Sauvegarder</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <LeavePlanDeleteModal
+      v-model="deleteLeavePlanDialog"
+      :leave-plan="leavePlanToDelete"
+      @confirm="deleteLeavePlan"
+    />
+
+    <HolidayModal
+      v-model="holidayDialog"
+      :holiday="selectedHoliday"
+      :loading="holidaysStore.loading"
+      @submit="handleHolidaySubmit"
+    />
+
+    <HolidayDeleteModal
+      v-model="deleteHolidayDialog"
+      :holiday="holidayToDelete"
+      @confirm="deleteHoliday"
+    />
   </v-container>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, onMounted } from "vue";
 import { useLeavePlansStore } from "@/stores/leavePlansStore";
 import { useHolidaysStore } from "@/stores/holidaysStore";
-import { storeToRefs } from "pinia";
+import { useToast } from 'primevue/usetoast';
+import LeavePlanModal from "@/components/admin/LeavePlanModal.vue";
+import LeavePlanDeleteModal from "@/components/admin/LeavePlanDeleteModal.vue";
+import HolidayModal from "@/components/admin/HolidayModal.vue";
+import HolidayDeleteModal from "@/components/admin/HolidayDeleteModal.vue";
 
-const tab = ref("plans");
-
-// Store pour les périodes de congé
+// Stores
 const leavePlansStore = useLeavePlansStore();
-const { leavePlans } = storeToRefs(leavePlansStore);
-const { addPlan, updatePlan, deletePlan } = leavePlansStore;
-
-// Store pour les jours fériés
 const holidaysStore = useHolidaysStore();
-const { holidays } = storeToRefs(holidaysStore);
-const { addHoliday, updateHoliday, deleteHoliday } = holidaysStore;
+const toast = useToast();
 
-// State pour les périodes de congé
-const planDialog = ref(false);
-const editedPlan = ref({});
-const planHeaders = ref([
-  { title: "Nom", key: "name" },
-  { title: "Début", key: "startDate" },
-  { title: "Fin", key: "endDate" },
-  { title: "Actions", key: "actions", sortable: false },
-]);
-const planFormTitle = computed(() =>
-  editedPlan.value.id ? "Modifier la Période" : "Nouvelle Période"
-);
+// Onglets
+const activeTab = ref('plans');
 
-function openPlanDialog(plan) {
-  editedPlan.value = plan ? { ...plan } : {};
-  planDialog.value = true;
-}
-function closePlanDialog() {
-  planDialog.value = false;
-}
-function savePlan() {
-  if (editedPlan.value.id) {
-    updatePlan(editedPlan.value);
-  } else {
-    addPlan(editedPlan.value);
-  }
-  closePlanDialog();
-}
-
-// State pour les jours fériés
+// Dialogs
+const leavePlanDialog = ref(false);
+const deleteLeavePlanDialog = ref(false);
 const holidayDialog = ref(false);
-const editedHoliday = ref({});
-const holidayHeaders = ref([
+const deleteHolidayDialog = ref(false);
+const selectedLeavePlan = ref(null);
+const selectedHoliday = ref(null);
+const leavePlanToDelete = ref(null);
+const holidayToDelete = ref(null);
+
+// Recherche
+const leavePlanSearch = ref('');
+const holidaySearch = ref('');
+
+// Headers pour les tables
+const leavePlanHeaders = [
+  { title: "Nom", key: "name" },
+  { title: "Date de début", key: "start_date" },
+  { title: "Date de fin", key: "end_date" },
+  { title: "Nombre de jours", key: "days_count" },
+  { title: "Type de congé", key: "leave_type" },
+  { title: "Actions", key: "actions", sortable: false },
+];
+
+const holidayHeaders = [
   { title: "Nom", key: "name" },
   { title: "Date", key: "date" },
+  { title: "Type", key: "type" },
+  { title: "Statut", key: "is_active" },
   { title: "Actions", key: "actions", sortable: false },
-]);
-const holidayFormTitle = computed(() =>
-  editedHoliday.value.id ? "Modifier le Jour Férié" : "Nouveau Jour Férié"
-);
+];
 
-function openHolidayDialog(holiday) {
-  editedHoliday.value = holiday ? { ...holiday } : {};
+// Utility functions
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('fr-FR');
+};
+
+const getTypeColor = (type) => {
+  const colors = {
+    conge_annuel: 'primary',
+    conges_fractionnes: 'info',
+    autres_conges_legaux: 'success',
+    conge_maladie: 'warning',
+    conge_maternite: 'pink',
+    conge_paternite: 'blue',
+    conge_sans_solde: 'grey',
+    absence_exceptionnelle: 'orange',
+    report_conge: 'purple'
+  };
+  return colors[type] || 'default';
+};
+
+const getTypeLabel = (type) => {
+  const labels = {
+    conge_annuel: 'Congé annuel',
+    conges_fractionnes: 'Congés fractionnés',
+    autres_conges_legaux: 'Autres congés légaux',
+    conge_maladie: 'Congé maladie',
+    conge_maternite: 'Congé maternité',
+    conge_paternite: 'Congé paternité',
+    conge_sans_solde: 'Congé sans solde',
+    absence_exceptionnelle: 'Absence exceptionnelle',
+    report_conge: 'Report de congé'
+  };
+  return labels[type] || type;
+};
+
+const getHolidayTypeColor = (type) => {
+  const colors = {
+    national: 'red',
+    religious: 'blue',
+    local: 'orange',
+    company: 'green'
+  };
+  return colors[type] || 'default';
+};
+
+const getHolidayTypeLabel = (type) => {
+  const labels = {
+    national: 'National',
+    religious: 'Religieux',
+    local: 'Local',
+    company: 'Autre'
+  };
+  return labels[type] || type;
+};
+
+// Actions pour les périodes de congés
+const openLeavePlanDialog = (leavePlan = null) => {
+  selectedLeavePlan.value = leavePlan;
+  leavePlanDialog.value = true;
+};
+
+const openDeleteLeavePlanDialog = (leavePlan) => {
+  leavePlanToDelete.value = leavePlan;
+  deleteLeavePlanDialog.value = true;
+};
+
+const handleLeavePlanSubmit = async (formData) => {
+  try {
+    if (selectedLeavePlan.value?.id) {
+      await leavePlansStore.updateLeavePlan({ ...formData, id: selectedLeavePlan.value.id });
+      toast.add({
+        severity: 'success',
+        summary: 'Modification réussie',
+        detail: 'La période de congés a été modifiée avec succès',
+        life: 3000
+      });
+    } else {
+      await leavePlansStore.addLeavePlan(formData);
+      toast.add({
+        severity: 'success',
+        summary: 'Ajout réussi',
+        detail: 'La période de congés a été ajoutée avec succès',
+        life: 3000
+      });
+    }
+    leavePlanDialog.value = false;
+    selectedLeavePlan.value = null;
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la période de congés:', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: error.response?.data?.message || 'Erreur lors de la sauvegarde de la période de congés',
+      life: 5000
+    });
+  }
+};
+
+const deleteLeavePlan = async () => {
+  try {
+    await leavePlansStore.deleteLeavePlan(leavePlanToDelete.value.id);
+    toast.add({
+      severity: 'success',
+      summary: 'Suppression réussie',
+      detail: 'La période de congés a été supprimée avec succès',
+      life: 3000
+    });
+    deleteLeavePlanDialog.value = false;
+    leavePlanToDelete.value = null;
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la période de congés:', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: error.response?.data?.message || 'Erreur lors de la suppression de la période de congés',
+      life: 5000
+    });
+  }
+};
+
+// Actions pour les jours fériés
+const openHolidayDialog = (holiday = null) => {
+  selectedHoliday.value = holiday;
   holidayDialog.value = true;
-}
-function closeHolidayDialog() {
-  holidayDialog.value = false;
-}
-function saveHoliday() {
-  if (editedHoliday.value.id) {
-    updateHoliday(editedHoliday.value);
-  } else {
-    addHoliday(editedHoliday.value);
-  }
-  closeHolidayDialog();
-}
+};
 
-function openActiveDialog() {
-  if (tab.value === "plans") {
-    openPlanDialog();
-  } else {
-    openHolidayDialog();
+const openDeleteHolidayDialog = (holiday) => {
+  holidayToDelete.value = holiday;
+  deleteHolidayDialog.value = true;
+};
+
+const handleHolidaySubmit = async (formData) => {
+  try {
+    if (selectedHoliday.value?.id) {
+      await holidaysStore.updateHoliday({ ...formData, id: selectedHoliday.value.id });
+      toast.add({
+        severity: 'success',
+        summary: 'Modification réussie',
+        detail: 'Le jour férié a été modifié avec succès',
+        life: 3000
+      });
+    } else {
+      await holidaysStore.addHoliday(formData);
+      toast.add({
+        severity: 'success',
+        summary: 'Ajout réussi',
+        detail: 'Le jour férié a été ajouté avec succès',
+        life: 3000
+      });
+    }
+    holidayDialog.value = false;
+    selectedHoliday.value = null;
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du jour férié:', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: error.response?.data?.message || 'Erreur lors de la sauvegarde du jour férié',
+      life: 5000
+    });
   }
-}
+};
+
+const deleteHoliday = async () => {
+  try {
+    await holidaysStore.deleteHoliday(holidayToDelete.value.id);
+    toast.add({
+      severity: 'success',
+      summary: 'Suppression réussie',
+      detail: 'Le jour férié a été supprimé avec succès',
+      life: 3000
+    });
+    deleteHolidayDialog.value = false;
+    holidayToDelete.value = null;
+  } catch (error) {
+    console.error('Erreur lors de la suppression du jour férié:', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: error.response?.data?.message || 'Erreur lors de la suppression du jour férié',
+      life: 5000
+    });
+  }
+};
+
+// Initialisation
+onMounted(async () => {
+  try {
+    await leavePlansStore.fetchLeavePlans();
+    await holidaysStore.fetchHolidays();
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error);
+  }
+});
 </script>
 
 <style scoped>
 .leave-planning-view {
-  background-color: #f4f6f8;
+  padding: 20px;
 }
+
 .rounded-lg {
   border-radius: 12px;
+}
+
+/* Centrage simple des onglets */
+:deep(.v-tabs .v-slide-group__content) {
+  justify-content: center !important;
 }
 </style>

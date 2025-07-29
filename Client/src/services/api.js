@@ -119,6 +119,7 @@ export const usersApi = {
   resetPassword: (id) => apiClient.post(`/users/${id}/reset-password`, {}),
   resetPasswordWithData: (id, passwordData) => apiClient.post(`/users/${id}/reset-password`, passwordData),
   managers: () => apiClient.get('/managers'),
+  simulateLogin: (userId) => apiClient.post(`/users/${userId}/simulate-login`),
 };
 
 export const rolesApi = {

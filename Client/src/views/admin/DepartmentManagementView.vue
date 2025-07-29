@@ -45,14 +45,6 @@
             >{{ item.employeeCount }} employé(s)</v-chip
           >
         </template>
-        <template v-slot:item.status="{ item }">
-          <v-chip
-            :color="item.status === 'Actif' ? 'green' : 'grey'"
-            dark
-            small
-            >{{ item.status }}</v-chip
-          >
-        </template>
         <template v-slot:item.actions="{ item }">
           <v-tooltip text="Modifier">
             <template v-slot:activator="{ props }">
@@ -104,6 +96,7 @@ import { ref, computed, onMounted } from "vue";
 import { useDepartmentsStore } from "@/stores/departments";
 import { useUsersAdminStore } from "@/stores/usersAdmin";
 import { storeToRefs } from "pinia";
+import { useToast } from 'primevue/usetoast';
 import DepartmentModal from "@/components/admin/DepartmentModal.vue";
 import DepartmentDeleteModal from "@/components/admin/DepartmentDeleteModal.vue";
 
@@ -112,6 +105,8 @@ const { departments } = storeToRefs(departmentsStore);
 
 const usersStore = useUsersAdminStore();
 const { users } = storeToRefs(usersStore);
+
+const toast = useToast();
 
 const search = ref("");
 const dialog = ref(false);
@@ -125,7 +120,6 @@ const defaultDepartment = {
   name: "",
   code: "",
   description: "",
-  status: "Actif",
 };
 
 const formTitle = computed(() =>
@@ -137,7 +131,6 @@ const headers = ref([
   { title: "Code", key: "code", sortable: true },
   { title: "Description", key: "directorName", sortable: false },
   { title: "Nombre d'Employés", key: "employeeCount", sortable: false },
-  { title: "Statut", key: "status", sortable: true },
   { title: "Actions", key: "actions", sortable: false, align: "end" },
 ]);
 
@@ -151,7 +144,6 @@ const computedDepartments = computed(() => {
       ...dept,
       directorName: dept.description || null, // description dynamique
       employeeCount, // nombre d'employés dynamique
-      status: dept.status || 'Actif', // statut dynamique (par défaut Actif)
     };
   });
 });
@@ -183,10 +175,22 @@ const saveDepartment = async (formData) => {
       // Mise à jour
       await departmentsStore.updateDepartment(formData.id, formData);
       console.log('✅ Département mis à jour avec succès');
+      toast.add({
+        severity: 'success',
+        summary: 'Succès',
+        detail: 'Département modifié avec succès',
+        life: 3000
+      });
     } else {
       // Création
       await departmentsStore.addDepartment(formData);
       console.log('✅ Département créé avec succès');
+      toast.add({
+        severity: 'success',
+        summary: 'Succès',
+        detail: 'Département créé avec succès',
+        life: 3000
+      });
     }
     closeDialog();
     
@@ -194,8 +198,12 @@ const saveDepartment = async (formData) => {
     await departmentsStore.fetchDepartments();
   } catch (error) {
     console.error('❌ Erreur lors de la sauvegarde du département:', error);
-    // Ici on pourrait ajouter une notification d'erreur pour l'utilisateur
-    // toast.error('Erreur lors de la sauvegarde du département: ' + error.message);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Erreur lors de la sauvegarde du département',
+      life: 5000
+    });
   }
 };
 
@@ -209,6 +217,12 @@ const deleteDept = async (dept) => {
     console.log('🗑️ Suppression département:', dept);
     await departmentsStore.deleteDepartment(dept.id);
     console.log('✅ Département supprimé avec succès');
+    toast.add({
+      severity: 'success',
+      summary: 'Succès',
+      detail: 'Département supprimé avec succès',
+      life: 3000
+    });
     closeDeleteDialog();
     
     // Recharger les données
@@ -216,8 +230,12 @@ const deleteDept = async (dept) => {
     await usersStore.fetchUsers(1, 100, '', true);
   } catch (error) {
     console.error('❌ Erreur lors de la suppression du département:', error);
-    // Ici on pourrait ajouter une notification d'erreur pour l'utilisateur
-    // toast.error('Erreur lors de la suppression du département: ' + error.message);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Erreur lors de la suppression du département',
+      life: 5000
+    });
   }
 };
 

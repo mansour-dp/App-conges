@@ -67,7 +67,7 @@ const menuItems = ref([
   },
   {
     title: "Journaux d'Activité",
-    icon: "mdi-post-it-note-text-outline",
+    icon: "mdi-text-box-multiple-outline",
     to: "/admin/logs",
   },
   { title: "Paramètres", icon: "mdi-cog", to: "/admin/settings" },
