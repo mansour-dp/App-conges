@@ -37,7 +37,7 @@ export const useHolidaysStore = defineStore("holidays", {
         return this.holidays;
       } catch (error) {
         this.error = "Erreur lors du chargement des jours fériés";
-        console.error('Erreur lors du chargement des jours fériés:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -56,7 +56,7 @@ export const useHolidaysStore = defineStore("holidays", {
         return response.data.data;
       } catch (error) {
         this.error = error.response?.data?.message || "Erreur lors de l'ajout du jour férié";
-        console.error('Erreur lors de l\'ajout du jour férié:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -80,7 +80,7 @@ export const useHolidaysStore = defineStore("holidays", {
         }
       } catch (error) {
         this.error = error.response?.data?.message || "Erreur lors de la modification du jour férié";
-        console.error('Erreur lors de la modification du jour férié:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -102,7 +102,7 @@ export const useHolidaysStore = defineStore("holidays", {
         }
       } catch (error) {
         this.error = error.response?.data?.message || "Erreur lors de la suppression du jour férié";
-        console.error('Erreur lors de la suppression du jour férié:', error);
+        
         throw error;
       } finally {
         this.loading = false;

@@ -379,10 +379,15 @@ export default {
     },
     async generateDocument(demande) {
       // Implémenter la logique de génération de PDF
-      console.log("Génération du document pour:", demande);
       // Simuler la génération
       setTimeout(() => {
-        alert("Document généré avec succès !");
+        // Notification de succès au lieu d'alert
+        this.$toast.add({
+          severity: 'success',
+          summary: 'Document généré',
+          detail: 'Le document PDF a été généré avec succès.',
+          life: 3000
+        });
         this.closePreview();
       }, 1000);
     }

@@ -103,14 +103,14 @@
 <script>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUsersStore } from '@/stores/auth'
+import { useUserStore } from '@/stores/users'
 import { useNotificationsStore } from '@/stores/notifications'
 
 export default {
   name: "DashboardToolbar",
   setup() {
     const router = useRouter()
-    const authStore = useUsersStore()
+    const authStore = useUserStore()
     const notificationsStore = useNotificationsStore()
     
     // Vérifier si une simulation est active
@@ -174,7 +174,7 @@ export default {
           // Rediriger vers la page de gestion des utilisateurs (replace pour éviter navigation arrière)
           router.replace('/admin/users')
         } catch (error) {
-          console.error('Erreur lors du retour admin:', error)
+          
           // En cas d'erreur, rediriger vers la page de connexion
           router.replace('/')
         }
@@ -209,7 +209,7 @@ export default {
     },
     toolbarStyle() {
       let style = {
-        background: "linear-gradient(90deg, #008a9b 0%, #261555 100%)",
+        background: "#008a9b",
         height: "64px",
         transition: "margin-left 0.3s ease, width 0.3s ease"
       };
@@ -269,7 +269,6 @@ export default {
     },
     viewAllNotifications() {
       // TODO: Navigate to notifications page
-      console.log('Voir toutes les notifications')
     }
   },
 };

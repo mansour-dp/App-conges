@@ -129,14 +129,8 @@ onMounted(async () => {
       usersAdminStore.fetchUsers(1, 100, '', true), // Charger tous les utilisateurs
       departmentsStore.fetchDepartments()
     ]);
-    
-    // Debug: afficher les données chargées
-    console.log('👥 Utilisateurs chargés:', usersAdminStore.users.length);
-    console.log('🏢 Départements chargés:', departmentsStore.departments.length);
-    console.log('📊 Total utilisateurs:', totalUsers.value);
-    console.log('🏢 Total départements:', totalDepartments.value);
   } catch (error) {
-    console.error('Erreur lors du chargement des données:', error);
+    // Gestion d'erreur silencieuse ou avec toast si nécessaire
   }
 });
 

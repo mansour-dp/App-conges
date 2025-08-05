@@ -318,13 +318,17 @@ export default {
       return icons[statutClass] || "fas fa-info-circle";
     },
     voirDetails(conge) {
-      console.log("Voir détails du congé:", conge);
+      // Afficher les détails du congé
     },
     telechargerAttestion(conge) {
-      console.log("Télécharger attestation pour:", conge);
-      alert(
-        `Attestation de congé pour la période du ${conge.dateDebut} au ${conge.dateFin} téléchargée.`
-      );
+      // TODO: Implémenter le téléchargement réel
+      // Pour l'instant, on simule juste l'action
+      this.$toast.add({
+        severity: 'success',
+        summary: 'Attestation téléchargée',
+        detail: `Attestation pour la période du ${conge.dateDebut} au ${conge.dateFin}`,
+        life: 3000
+      });
     },
   },
   watch: {

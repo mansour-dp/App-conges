@@ -341,7 +341,7 @@ const handleLeavePlanSubmit = async (formData) => {
     leavePlanDialog.value = false;
     selectedLeavePlan.value = null;
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde de la période de congés:', error);
+    
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -363,7 +363,7 @@ const deleteLeavePlan = async () => {
     deleteLeavePlanDialog.value = false;
     leavePlanToDelete.value = null;
   } catch (error) {
-    console.error('Erreur lors de la suppression de la période de congés:', error);
+    
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -406,7 +406,7 @@ const handleHolidaySubmit = async (formData) => {
     holidayDialog.value = false;
     selectedHoliday.value = null;
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde du jour férié:', error);
+    
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -428,7 +428,7 @@ const deleteHoliday = async () => {
     deleteHolidayDialog.value = false;
     holidayToDelete.value = null;
   } catch (error) {
-    console.error('Erreur lors de la suppression du jour férié:', error);
+    
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -457,7 +457,7 @@ onMounted(async () => {
     }, 1000);
 
   } catch (error) {
-    console.error('Erreur lors du chargement des données:', error);
+    
     // Arrête les loaders même en cas d'erreur
     loadingPlans.value = false;
     loadingHolidays.value = false;

@@ -44,7 +44,7 @@ export const useLeavePlansStore = defineStore("leavePlans", {
         return this.leavePlans;
       } catch (error) {
         this.error = "Erreur lors du chargement des périodes de congés";
-        console.error('Erreur lors du chargement des périodes de congés:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -63,7 +63,7 @@ export const useLeavePlansStore = defineStore("leavePlans", {
         return response.data.data;
       } catch (error) {
         this.error = error.response?.data?.message || "Erreur lors de l'ajout de la période de congés";
-        console.error('Erreur lors de l\'ajout de la période de congés:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -87,7 +87,7 @@ export const useLeavePlansStore = defineStore("leavePlans", {
         }
       } catch (error) {
         this.error = error.response?.data?.message || "Erreur lors de la modification de la période de congés";
-        console.error('Erreur lors de la modification de la période de congés:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -109,7 +109,7 @@ export const useLeavePlansStore = defineStore("leavePlans", {
         }
       } catch (error) {
         this.error = error.response?.data?.message || "Erreur lors de la suppression de la période de congés";
-        console.error('Erreur lors de la suppression de la période de congés:', error);
+        
         throw error;
       } finally {
         this.loading = false;

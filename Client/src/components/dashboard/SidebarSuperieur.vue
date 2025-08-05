@@ -10,8 +10,7 @@
       </div>
       <div class="user-info">
         <div class="user-details">
-          <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
-          <span class="user-function">{{ user.fonction }}</span>
+          <span class="user-name">{{ userName }}</span>
           <div class="user-role-container">
             <div class="connection-indicator"></div>
             <span class="user-role">{{ role }}</span>
@@ -108,6 +107,8 @@
 </template>
 
 <script>
+import { useUserStore } from '@/stores/users';
+
 export default {
   name: "SidebarSuperieur",
   props: {
@@ -121,23 +122,38 @@ export default {
     }
   },
   emits: ["toggle-sidebar"],
+  setup() {
+    const userStore = useUserStore();
+    return { userStore };
+  },
   data() {
     return {
-      user: {
-        nom: "Diop",
-        prenom: "Mansour",
-        fonction: "Chef de Service",
-      },
       demandesEnAttente: 3,
     };
   },
   computed: {
+    userName() {
+      if (!this.userStore.user) return 'Utilisateur Inconnu';
+      
+      // Support pour les deux formats de noms
+      const firstName = this.userStore.user.first_name || this.userStore.user.prenom || '';
+      const lastName = this.userStore.user.name || this.userStore.user.nom || '';
+      return `${firstName} ${lastName}`.trim() || 'Utilisateur Inconnu';
+    },
+    userFunction() {
+      return this.userStore.user?.fonction || this.userStore.user?.position || 'Fonction non définie';
+    },
     userInitials() {
-      return this.user.prenom.charAt(0) + this.user.nom.charAt(0);
+      if (!this.userStore.user) return 'UI';
+      
+      const firstName = this.userStore.user.first_name || this.userStore.user.prenom || '';
+      const lastName = this.userStore.user.name || this.userStore.user.nom || '';
+      return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || 'UI';
     },
     rolePrefix() {
       switch (this.role) {
         case "Directeur d'Unité":
+        case "Directeur Unité":
           return "directeurUnite";
         case "Responsable RH":
           return "responsableRH";
@@ -149,9 +165,14 @@ export default {
     }
   },
   methods: {
-    logout() {
-      localStorage.removeItem("user");
-      this.$router.push("/");
+    async logout() {
+      try {
+        await this.userStore.logout();
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+      } finally {
+        this.$router.push("/");
+      }
     },
   },
 };

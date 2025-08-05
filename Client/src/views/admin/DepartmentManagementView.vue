@@ -181,11 +181,10 @@ const closeDialog = () => {
 
 const saveDepartment = async (formData) => {
   try {
-    console.log('💾 Sauvegarde département:', formData);
     if (editedIndex.value > -1) {
       // Mise à jour
       await departmentsStore.updateDepartment(formData.id, formData);
-      console.log('✅ Département mis à jour avec succès');
+      
       toast.add({
         severity: 'success',
         summary: 'Succès',
@@ -195,7 +194,7 @@ const saveDepartment = async (formData) => {
     } else {
       // Création
       await departmentsStore.addDepartment(formData);
-      console.log('✅ Département créé avec succès');
+      
       toast.add({
         severity: 'success',
         summary: 'Succès',
@@ -208,7 +207,7 @@ const saveDepartment = async (formData) => {
     // Recharger les données
     await departmentsStore.fetchDepartments();
   } catch (error) {
-    console.error('❌ Erreur lors de la sauvegarde du département:', error);
+    
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -225,9 +224,9 @@ const confirmDelete = (dept) => {
 
 const deleteDept = async (dept) => {
   try {
-    console.log('🗑️ Suppression département:', dept);
+  
     await departmentsStore.deleteDepartment(dept.id);
-    console.log('✅ Département supprimé avec succès');
+  
     toast.add({
       severity: 'success',
       summary: 'Succès',

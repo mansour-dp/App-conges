@@ -1,5 +1,14 @@
 <template>
   <v-app-bar app color="white" elevation="1">
+    <!-- Bouton hamburger pour contrôler la sidebar -->
+    <v-btn
+      icon="mdi-menu"
+      @click="$emit('toggle-sidebar')"
+      class="mr-2"
+      color="primary"
+      title="Ouvrir/Fermer le menu"
+    ></v-btn>
+    
     <v-toolbar-title class="font-weight-bold text-grey-darken-3">
       {{ title }}
     </v-toolbar-title>
@@ -68,6 +77,8 @@ defineProps({
   },
 });
 
+defineEmits(['toggle-sidebar']);
+
 const router = useRouter();
 const usersStore = useUsersAdminStore();
 const userStore = useUserStore();
@@ -82,7 +93,7 @@ const handleLogout = async () => {
     await userStore.logout();
     router.push('/');
   } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error);
+    
     // Forcer la redirection même en cas d'erreur
     window.location.href = '/';
   }

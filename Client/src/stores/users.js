@@ -52,7 +52,7 @@ export const useUserStore = defineStore('user', {
           return { success: false, error: this.error };
         }
       } catch (error) {
-        console.error('Erreur de connexion détaillée:', error);
+        
         
         let errorMessage = 'Erreur de connexion';
         
@@ -104,7 +104,7 @@ export const useUserStore = defineStore('user', {
           await authApi.logout();
         }
       } catch (error) {
-        console.error('Erreur lors de la déconnexion:', error);
+        
       } finally {
         // Nettoyer le state et localStorage
         this.user = null;
@@ -128,7 +128,7 @@ export const useUserStore = defineStore('user', {
           localStorage.setItem('user', JSON.stringify(this.user));
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+        
         this.logout();
       } finally {
         this.loading = false;
@@ -145,7 +145,7 @@ export const useUserStore = defineStore('user', {
           localStorage.setItem('auth_token', this.token);
         }
       } catch (error) {
-        console.error('Erreur lors du rafraîchissement du token:', error);
+        
         this.logout();
       }
     },

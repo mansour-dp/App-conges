@@ -20,12 +20,10 @@ export const useDepartmentsStore = defineStore("departments", {
       
       try {
         const response = await departmentsApi.list();
-        console.log('🏢 Départements API response:', response.data);
         this.departments = response.data.data || [];
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors du chargement des départements:', error);
         
         // En cas d'erreur, utiliser des données par défaut
         this.departments = [
@@ -60,15 +58,10 @@ export const useDepartmentsStore = defineStore("departments", {
       this.error = null;
       
       try {
-        console.log('🏢 Tentative de création département:', department);
         const response = await departmentsApi.create(department);
-        console.log('✅ Département créé:', response.data);
         await this.fetchDepartments(); // Recharger la liste
         return response.data;
       } catch (error) {
-        console.error('❌ Erreur lors de la création du département:', error);
-        console.error('❌ Response data:', error.response?.data);
-        console.error('❌ Status:', error.response?.status);
         this.error = error.response?.data?.message || error.message;
         throw error;
       } finally {
@@ -81,9 +74,7 @@ export const useDepartmentsStore = defineStore("departments", {
       this.error = null;
       
       try {
-        console.log('🏢 Tentative de mise à jour département:', departmentId, department);
         const response = await departmentsApi.update(departmentId, department);
-        console.log('✅ Département mis à jour:', response.data);
         
         // Mettre à jour dans le state local
         const index = this.departments.findIndex(d => d.id === departmentId);
@@ -93,9 +84,6 @@ export const useDepartmentsStore = defineStore("departments", {
         
         return response.data;
       } catch (error) {
-        console.error('❌ Erreur lors de la mise à jour du département:', error);
-        console.error('❌ Response data:', error.response?.data);
-        console.error('❌ Status:', error.response?.status);
         this.error = error.response?.data?.message || error.message;
         throw error;
       } finally {
@@ -108,18 +96,13 @@ export const useDepartmentsStore = defineStore("departments", {
       this.error = null;
       
       try {
-        console.log('🗑️ Tentative de suppression département:', departmentId);
         await departmentsApi.delete(departmentId);
-        console.log('✅ Département supprimé');
         
         // Supprimer du state local
         this.departments = this.departments.filter(d => d.id !== departmentId);
         
         return true;
       } catch (error) {
-        console.error('❌ Erreur lors de la suppression du département:', error);
-        console.error('❌ Response data:', error.response?.data);
-        console.error('❌ Status:', error.response?.status);
         this.error = error.response?.data?.message || error.message;
         throw error;
       } finally {

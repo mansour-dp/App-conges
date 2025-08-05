@@ -370,14 +370,11 @@ export default {
         this.notificationsStore.notifyDemandeValidated(action, demandeur);
 
         // Ici on ajouterait l'appel API pour sauvegarder
-        console.log("Demande validée:", this.selectedDemande);
-
         this.fermerModal();
       }
     },
     voirDetails(demande) {
       // Logique pour voir les détails
-      console.log("Voir détails:", demande);
     },
   },
 };

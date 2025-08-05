@@ -37,7 +37,6 @@
           hide-details
           class="mr-4"
           style="max-width: 400px"
-          @keyup.enter="searchUsers"
         ></v-text-field>
         <v-btn
           color="primary"
@@ -72,7 +71,7 @@
         :headers="headers"
         :items="filteredUsers"
         :items-per-page="itemsPerPage"
-        :items-per-page-options="[10, 20, 50, 100]"
+        :items-per-page-options="PAGINATION_CONFIG.ITEMS_PER_PAGE_OPTIONS"
         class="elevation-0"
         hover
         no-data-text="Aucun utilisateur trouvé"
@@ -185,19 +184,18 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useUsersAdminStore } from "@/stores/usersAdmin";
 import { useUserStore } from "@/stores/users";
-import { useUsersStore } from "@/stores/auth";
 import { useToast } from 'primevue/usetoast';
 import { storeToRefs } from "pinia";
 import { usersApi } from "@/services/api";
 import UserModal from "@/components/admin/UserModal.vue";
 import UserDeleteModal from "@/components/admin/UserDeleteModal.vue";
 import ResetPasswordModal from "@/components/admin/ResetPasswordModal.vue";
+import { ROLE_COLORS, ROLE_ROUTES, PAGINATION_CONFIG } from "@/utils/constants";
 
 // Router et stores
 const router = useRouter();
 const usersStore = useUsersAdminStore();
-const userStore = useUserStore();
-const authStore = useUsersStore();
+const authStore = useUserStore();
 const toast = useToast();
 const {
   users,
@@ -214,8 +212,7 @@ const dialogDelete = ref(false);
 const dialogResetPassword = ref(false);
 const userToDelete = ref(null);
 const userToResetPassword = ref(null);
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(PAGINATION_CONFIG.DEFAULT_ITEMS_PER_PAGE);
 const editedIndex = ref(-1);
 
 // Loading state for skeleton loader
@@ -253,43 +250,27 @@ const defaultUser = {
   password_confirmation: "",
 };
 
-// Computed properties
-const totalUsers = computed(() => pagination.value?.total || 0);
-
-// Filtrage simple et efficace des utilisateurs
+// Filtrage optimisé des utilisateurs
 const filteredUsers = computed(() => {
-  if (!search.value || search.value.trim() === '') {
-    return users.value;
-  }
+  if (!search.value?.trim()) return users.value;
   
   const searchTerm = search.value.toLowerCase().trim();
+  const searchWords = searchTerm.split(' ').filter(word => word.length > 0);
   
   return users.value.filter(user => {
-    // Recherche dans nom
-    if (user.name && user.name.toLowerCase().includes(searchTerm)) return true;
+    const searchableText = [
+      user.name,
+      user.first_name,
+      user.email,
+      user.matricule,
+      user.department?.name,
+      user.role?.nom,
+      user.is_active ? 'actif' : 'inactif'
+    ].filter(Boolean).join(' ').toLowerCase();
     
-    // Recherche dans prénom
-    if (user.first_name && user.first_name.toLowerCase().includes(searchTerm)) return true;
-    
-    // Recherche dans email
-    if (user.email && user.email.toLowerCase().includes(searchTerm)) return true;
-    
-    // Recherche dans matricule
-    if (user.matricule && user.matricule.toLowerCase().includes(searchTerm)) return true;
-    
-    // Recherche dans département
-    if (user.department?.name && user.department.name.toLowerCase().includes(searchTerm)) return true;
-    
-    // Recherche dans rôle
-    if (user.role?.nom && user.role.nom.toLowerCase().includes(searchTerm)) return true;
-    
-    // Recherche dans statut
-    const status = user.is_active ? 'actif' : 'inactif';
-    if (status.includes(searchTerm)) return true;
-    
-    return false;
+    return searchWords.every(word => searchableText.includes(word));
   });
-});
+});;
 
 // Computed property pour obtenir tous les utilisateurs actifs pour la simulation
 const allUsers = computed(() => {
@@ -310,19 +291,21 @@ const headers = ref([
 ]);
 
 // Methods
-const searchUsers = () => {
-  // Suppression du snackbar de recherche
+const handleApiError = (error, defaultMessage) => {
+  const message = error.response?.data?.message || 
+                  error.message || 
+                  defaultMessage;
+  
+  toast.add({
+    severity: 'error',
+    summary: 'Erreur',
+    detail: message,
+    life: 5000
+  });
 };
+
 const getRoleColor = (role) => {
-  const colors = {
-    'Admin': "red-darken-2",
-    'Directeur RH': "purple-darken-2",
-    'Responsable RH': "indigo-darken-2",
-    'Directeur Unite': "blue-darken-2",
-    'Superieur': "cyan-darken-2",
-    'Employe': "green-darken-2",
-  };
-  return colors[role] || "grey";
+  return ROLE_COLORS[role] || "grey";
 };
 
 const formatDate = (dateString) => {
@@ -353,29 +336,9 @@ const clearError = () => {
 
 // Fonction pour rediriger vers le dashboard approprié selon le rôle
 const redirectToDashboard = (userRole) => {
-  // Correspondance directe avec les rôles exacts de la base de données
-  // Utilise replace() pour éviter les problèmes de navigation arrière pendant la simulation
-  switch (userRole) {
-    case 'Admin':
-      router.replace('/admin/dashboard');
-      break;
-    case 'Directeur RH':
-      router.replace('/directeur-rh/dashboard');
-      break;
-    case 'Responsable RH':
-      router.replace('/responsable-rh/dashboard');
-      break;
-    case 'Directeur Unité':
-      router.replace('/directeur-unite/dashboard');
-      break;
-    case 'Superieur':
-      router.replace('/superieur/dashboard');
-      break;
-    case 'Employe':
-    default:
-      router.replace('/employe/dashboard');
-      break;
-  }
+  // Utilise les routes définies dans les constantes
+  const route = ROLE_ROUTES[userRole] || ROLE_ROUTES['Employe'];
+  router.replace(route);
 };
 
 // Méthode pour simuler la connexion d'un utilisateur
@@ -432,7 +395,7 @@ const simulateUser = async () => {
       throw new Error(response.data.message || 'Erreur lors de la simulation');
     }
   } catch (error) {
-    console.error('Erreur simulation utilisateur:', error);
+   
     toast.add({
       severity: 'error',
       summary: 'Erreur de simulation',
@@ -531,42 +494,33 @@ const saveUser = async (formData) => {
   }
 
   try {
-    console.log('💾 Sauvegarde utilisateur:', formData);
+    
     if (editedIndex.value > -1) {
       // Mise à jour utilisateur existant
-      console.log('📝 Mise à jour utilisateur ID:', formData.id);
       await usersStore.updateUser(formData.id, mappedData);
-      console.log('✅ Utilisateur mis à jour avec succès');
+      
       toast.add({
         severity: 'success',
         summary: 'Utilisateur modifié',
-        detail: `Le profil de ${formData.first_name} ${formData.name} a été mis à jour avec succès.`,
+        detail: `${formData.first_name} ${formData.name} a été mis à jour avec succès.`,
         life: 3000
       });
     } else {
       // Création nouvel utilisateur
-      console.log('✨ Création nouvel utilisateur');
       await usersStore.addUser(mappedData);
-      console.log('✅ Utilisateur créé avec succès');
+      
       toast.add({
         severity: 'success',
         summary: 'Utilisateur créé',
-        detail: `${formData.first_name} ${formData.name} a été ajouté à l'équipe avec succès.`,
+        detail: `${formData.first_name} ${formData.name} a été ajouté avec succès.`,
         life: 3000
       });
     }
+    
     closeDialog();
-    await loadAllUsers(); // Force refresh avec tous les utilisateurs
+    await loadAllUsers();
   } catch (error) {
-    console.error('❌ Erreur lors de la sauvegarde de l\'utilisateur:', error);
-    console.error('❌ Response data:', error.response?.data);
-    console.error('❌ Status:', error.response?.status);
-    toast.add({
-      severity: 'error',
-      summary: 'Erreur de sauvegarde',
-      detail: 'Impossible de sauvegarder les données utilisateur. Veuillez réessayer.',
-      life: 5000
-    });
+    handleApiError(error, 'Erreur lors de la sauvegarde de l\'utilisateur');
   }
 };
 
@@ -579,27 +533,19 @@ const deleteUser = async (user) => {
   if (!user) return;
 
   try {
-    console.log('🗑️ Suppression utilisateur:', user);
     await usersStore.removeUser(user.id);
-    console.log('✅ Utilisateur supprimé avec succès');
+   
     toast.add({
       severity: 'success',
       summary: 'Utilisateur supprimé',
-      detail: `${user.first_name} ${user.name} a été retiré du système avec succès.`,
+      detail: `${user.first_name} ${user.name} a été supprimé avec succès.`,
       life: 3000
     });
+    
     closeDeleteDialog();
-    await loadAllUsers(); // Force refresh avec tous les utilisateurs
+    await loadAllUsers();
   } catch (error) {
-    console.error('❌ Erreur lors de la suppression de l\'utilisateur:', error);
-    console.error('❌ Response data:', error.response?.data);
-    console.error('❌ Status:', error.response?.status);
-    toast.add({
-      severity: 'error',
-      summary: 'Erreur de suppression',
-      detail: 'Impossible de supprimer cet utilisateur. Il pourrait avoir des données liées.',
-      life: 5000
-    });
+    handleApiError(error, 'Impossible de supprimer cet utilisateur');
   }
 };
 
@@ -611,10 +557,11 @@ const closeDeleteDialog = () => {
 const toggleUserStatus = async (user) => {
   try {
     const response = await usersStore.toggleUserStatus(user.id);
+    
     let newStatus;
-    if (response.data && response.data.is_active !== undefined) {
+    if (response.data?.is_active !== undefined) {
       newStatus = response.data.is_active;
-    } else if (response.data && response.data.data && response.data.data.is_active !== undefined) {
+    } else if (response.data?.data?.is_active !== undefined) {
       newStatus = response.data.data.is_active;
     } else {
       const updatedUser = users.value.find(u => u.id === user.id);
@@ -625,16 +572,11 @@ const toggleUserStatus = async (user) => {
     toast.add({
       severity: 'info',
       summary: `Compte ${statusText}`,
-      detail: `Le compte de ${user.first_name} ${user.name} a été ${statusText} avec succès.`,
+      detail: `${user.first_name} ${user.name} a été ${statusText}.`,
       life: 3000
     });
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Erreur de statut',
-      detail: 'Impossible de modifier le statut de cet utilisateur.',
-      life: 4000
-    });
+    handleApiError(error, 'Impossible de modifier le statut de cet utilisateur');
   }
 };
 
@@ -645,87 +587,59 @@ const resetPassword = (user) => {
 
 const handleResetPassword = async (passwordData) => {
   try {
-    console.log('🔑 Réinitialisation mot de passe pour:', userToResetPassword.value);
-    // Mettre à jour le store pour envoyer les données du mot de passe
     await usersStore.resetUserPasswordWithData(userToResetPassword.value.id, passwordData);
-    console.log('✅ Mot de passe réinitialisé avec succès');
 
     toast.add({
       severity: 'success',
       summary: 'Mot de passe réinitialisé',
-      detail: `Le mot de passe de ${userToResetPassword.value.first_name} ${userToResetPassword.value.name} a été réinitialisé avec succès.`,
+      detail: `Mot de passe de ${userToResetPassword.value.first_name} ${userToResetPassword.value.name} réinitialisé.`,
       life: 3000
     });
 
-    // Fermer le modal
     dialogResetPassword.value = false;
     userToResetPassword.value = null;
   } catch (error) {
-    console.error('❌ Erreur lors de la réinitialisation du mot de passe:', error);
-    console.error('❌ Response data:', error.response?.data);
-    console.error('❌ Status:', error.response?.status);
-    toast.add({
-      severity: 'error',
-      summary: 'Erreur de réinitialisation',
-      detail: 'Impossible de réinitialiser le mot de passe. Veuillez réessayer.',
-      life: 4000
-    });
+    handleApiError(error, 'Impossible de réinitialiser le mot de passe');
   }
 };
 
 const loadUsers = async (forceRefresh = false) => {
   try {
-    await usersStore.fetchUsers(
-      currentPage.value,
-      itemsPerPage.value,
-      '',
-      forceRefresh
-    );
+    await usersStore.fetchUsers(1, PAGINATION_CONFIG.MAX_ITEMS_FOR_ALL_USERS, '', forceRefresh);
   } catch (error) {
-    // Chargement silencieux - pas de toast pour cette action
+    handleApiError(error, 'Erreur lors du chargement des utilisateurs');
   }
 };
 
 // Watch search input for real-time feedback
-let searchTimeout;
-watch(search, (newVal, oldVal) => {
-  clearTimeout(searchTimeout);
-  
-  // Suppression des toasts de recherche - recherche silencieuse
+watch(search, () => {
   // La recherche se fait automatiquement via filteredUsers computed
+  // Pas besoin d'action supplémentaire ici
 });
 
 // Load initial data
-onMounted(() => {
-  // Démarre le skeleton loader
+onMounted(async () => {
   loadingUsers.value = true;
   
-  // Simule un délai de 1 seconde avant de charger les données
-  setTimeout(async () => {
-    await loadAllUsers(); // Charger tous les utilisateurs
-    usersStore.fetchRoles();
-    usersStore.fetchDepartments();
+  try {
+    await Promise.all([
+      loadAllUsers(),
+      usersStore.fetchRoles(),
+      usersStore.fetchDepartments()
+    ]);
+  } catch (error) {
+    handleApiError(error, 'Erreur lors de l\'initialisation');
+  } finally {
     loadingUsers.value = false;
-  }, 1000);
-  
-  // Test toast au chargement
-  setTimeout(() => {
-    // toast.add({
-    //   severity: 'info',
-    //   summary: 'Système initialisé',
-    //   detail: 'Interface de gestion des utilisateurs chargée avec succès.',
-    //   life: 3000
-    // });
-  }, 1000);
+  }
 });
 
 // Load all users initially
 const loadAllUsers = async () => {
   try {
-    // Charger avec une pagination élevée pour obtenir tous les utilisateurs
-    await usersStore.fetchUsers(1, 100, '', true);
+    await usersStore.fetchUsers(1, PAGINATION_CONFIG.MAX_ITEMS_FOR_ALL_USERS, '', true);
   } catch (error) {
-    // Chargement silencieux - pas de toast
+    handleApiError(error, 'Erreur lors du chargement initial des utilisateurs');
   }
 };
 

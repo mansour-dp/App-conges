@@ -60,7 +60,7 @@ export const useDemandesStore = defineStore('demandes', {
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Erreur lors du chargement des demandes';
-        console.error('Erreur fetchDemandes:', error);
+        
       } finally {
         this.loading = false;
       }
@@ -80,7 +80,7 @@ export const useDemandesStore = defineStore('demandes', {
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Erreur lors du chargement des demandes à valider';
-        console.error('Erreur fetchDemandesAValider:', error);
+        
       } finally {
         this.loading = false;
       }
@@ -102,7 +102,7 @@ export const useDemandesStore = defineStore('demandes', {
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Erreur lors de la création de la demande';
-        console.error('Erreur createDemande:', error);
+        
         return { success: false, error: this.error };
       } finally {
         this.loading = false;
@@ -128,7 +128,7 @@ export const useDemandesStore = defineStore('demandes', {
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Erreur lors de la mise à jour de la demande';
-        console.error('Erreur updateDemande:', error);
+        
         return { success: false, error: this.error };
       } finally {
         this.loading = false;
@@ -151,7 +151,7 @@ export const useDemandesStore = defineStore('demandes', {
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Erreur lors de la suppression de la demande';
-        console.error('Erreur deleteDemande:', error);
+        
         return { success: false, error: this.error };
       } finally {
         this.loading = false;
@@ -187,7 +187,7 @@ export const useDemandesStore = defineStore('demandes', {
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Erreur lors de la validation de la demande';
-        console.error('Erreur validateDemande:', error);
+        
         return { success: false, error: this.error };
       } finally {
         this.loading = false;
@@ -210,7 +210,7 @@ export const useDemandesStore = defineStore('demandes', {
         }
       } catch (error) {
         this.error = error.response?.data?.message || 'Erreur lors du chargement de la demande';
-        console.error('Erreur fetchDemande:', error);
+        
         return { success: false, error: this.error };
       } finally {
         this.loading = false;

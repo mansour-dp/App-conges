@@ -80,11 +80,21 @@ export default {
     },
     processFile(file) {
       if (!file.type.startsWith("image/")) {
-        alert("Veuillez sélectionner une image valide");
+        this.$toast.add({
+          severity: 'warn',
+          summary: 'Format invalide',
+          detail: 'Veuillez sélectionner une image valide',
+          life: 3000
+        });
         return;
       }
       if (file.size > 2 * 1024 * 1024) {
-        alert("L'image ne doit pas dépasser 2MB");
+        this.$toast.add({
+          severity: 'warn',
+          summary: 'Fichier trop volumineux',
+          detail: 'L\'image ne doit pas dépasser 2MB',
+          life: 3000
+        });
         return;
       }
       this.selectedFile = file;
@@ -99,7 +109,12 @@ export default {
     },
     sauvegarder() {
       if (!this.selectedFile) {
-        alert("Veuillez sélectionner une signature");
+        this.$toast.add({
+          severity: 'warn',
+          summary: 'Signature requise',
+          detail: 'Veuillez sélectionner une signature',
+          life: 3000
+        });
         return;
       }
       const reader = new FileReader();

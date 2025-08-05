@@ -18,9 +18,6 @@ const apiClient = axios.create({
 // Intercepteur pour ajouter le token d'authentification
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('🚀 Requête API:', config.method.toUpperCase(), config.url);
-    console.log('📦 Données envoyées:', config.data);
-
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -28,7 +25,6 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('❌ Erreur de requête:', error);
     return Promise.reject(error);
   }
 );
@@ -36,29 +32,13 @@ apiClient.interceptors.request.use(
 // Intercepteur pour gérer les réponses et les erreurs
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('✅ Réponse reçue:', response.status, response.config.url);
-    console.log('📋 Données reçues:', response.data);
     return response;
   },
   (error) => {
-    console.error('❌ Erreur de réponse:', error);
-
-    if (error.code === 'ECONNABORTED') {
-      console.error('⏱️ Timeout de connexion');
-    }
-
-    if (error.response) {
-      console.error('📋 Réponse d\'erreur:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.error('📡 Pas de réponse reçue:', error.request);
-    }
-
     // Gestion des erreurs d'authentification
     if (error.response?.status === 401) {
       // Ne pas rediriger automatiquement si c'est une tentative de login
-      if (error.config?.url?.includes('/login')) {
-        console.log('🔐 Erreur de connexion - pas de redirection automatique');
-      } else {
+      if (!error.config?.url?.includes('/login')) {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
         window.location.href = '/';
@@ -68,10 +48,8 @@ apiClient.interceptors.response.use(
     // Gestion des erreurs de validation (422)
     if (error.response?.status === 422) {
       const validationErrors = error.response.data.errors;
-      console.error('🚫 Erreurs de validation:', validationErrors);
       if (validationErrors) {
         const errorMessages = Object.values(validationErrors).flat();
-        console.error('📝 Messages d\'erreur:', errorMessages);
         error.message = errorMessages.join(', ');
       }
     }

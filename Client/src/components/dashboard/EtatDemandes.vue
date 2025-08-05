@@ -201,12 +201,9 @@ export default {
         
         // Notification d'annulation
         this.notificationsStore.notifyDemandeCancelled('Votre demande');
-        
-        console.log("Demande annulée:", demande.id);
       }
     },
     voirDetails(demande) {
-      console.log("Voir détails de la demande:", demande.id);
       // Ouvrir modal ou naviguer vers page détaillée
     },
     isDemandeInYear(demande, year) {

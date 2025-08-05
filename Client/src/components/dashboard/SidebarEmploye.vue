@@ -10,8 +10,7 @@
       </div>
       <div class="user-info">
         <div class="user-details">
-          <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
-          <span class="user-function">{{ user.fonction }}</span>
+          <span class="user-name">{{ userName }}</span>
           <div class="user-role-container">
             <div class="connection-indicator"></div>
             <span class="user-role">Employé</span>
@@ -80,6 +79,17 @@ export default {
     return { userStore };
   },
   computed: {
+    userName() {
+      if (!this.userStore.user) return 'Utilisateur Inconnu';
+      
+      // Support pour les deux formats de noms
+      const firstName = this.userStore.user.first_name || this.userStore.user.prenom || '';
+      const lastName = this.userStore.user.name || this.userStore.user.nom || '';
+      return `${firstName} ${lastName}`.trim() || 'Utilisateur Inconnu';
+    },
+    userFunction() {
+      return this.userStore.user?.fonction || this.userStore.user?.position || 'Employé';
+    },
     user() {
       return this.userStore.user || {
         nom: "Utilisateur",
@@ -88,7 +98,11 @@ export default {
       };
     },
     userInitials() {
-      return this.user.first_name?.charAt(0) + this.user.name?.charAt(0) || 'UI';
+      if (!this.userStore.user) return 'UI';
+      
+      const firstName = this.userStore.user.first_name || this.userStore.user.prenom || '';
+      const lastName = this.userStore.user.name || this.userStore.user.nom || '';
+      return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || 'UI';
     },
   },
   methods: {
@@ -96,7 +110,7 @@ export default {
       try {
         await this.userStore.logout();
       } catch (error) {
-        console.error('Erreur lors de la déconnexion:', error);
+        
       } finally {
         this.$router.push("/");
       }

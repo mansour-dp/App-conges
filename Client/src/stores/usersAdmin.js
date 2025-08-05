@@ -77,7 +77,6 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         }
 
         const response = await usersApi.list(params);
-        console.log('👥 Utilisateurs API response:', response.data);
         
         if (response.data.success) {
           this.users = response.data.data.data || response.data.data || [];
@@ -104,7 +103,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors du chargement des utilisateurs:', error);
+        
         this.users = [];
         return { success: false, error: this.error };
       } finally {
@@ -128,7 +127,6 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
 
       try {
         const response = await rolesApi.list();
-        console.log('👤 Rôles API response:', response.data);
         
         if (response.data.success) {
           this.roles = response.data.data || [];
@@ -143,7 +141,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors du chargement des rôles:', error);
+        
         this.roles = [];
         return { success: false, error: this.error };
       } finally {
@@ -167,7 +165,6 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
 
       try {
         const response = await departmentsApi.list();
-        console.log('🏢 Départements API response:', response.data);
         
         if (response.data.success) {
           this.departments = response.data.data || [];
@@ -182,7 +179,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors du chargement des départements:', error);
+        
         this.departments = [];
         return { success: false, error: this.error };
       } finally {
@@ -206,7 +203,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors de la création de l\'utilisateur:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -233,7 +230,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -257,7 +254,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -282,7 +279,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors du changement de statut:', error);
+        
         throw error;
       } finally {
         this.loading = false;
@@ -298,7 +295,7 @@ export const useUsersAdminStore = defineStore('usersAdmin', {
         return response.data;
       } catch (error) {
         this.error = error.message;
-        console.error('Erreur lors de la réinitialisation du mot de passe:', error);
+        
         throw error;
       } finally {
         this.loading = false;

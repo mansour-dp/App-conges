@@ -130,7 +130,6 @@ const validateForm = () => {
 const handleSubmit = (event) => {
   event.preventDefault();
   event.stopPropagation();
-  console.log('🔄 Tentative de connexion avec:', { email: email.value, hasPassword: !!password.value });
   login();
 };
 
@@ -181,11 +180,6 @@ const login = async () => {
         userRole = userData.role.name || userData.role.nom || 'Employe';
       }
       
-      console.log('✅ Connexion réussie:', {
-        user: userData.email,
-        role: userRole
-      });
-      
       // Rediriger vers le tableau de bord approprié
       setTimeout(() => {
         redirectToDashboard(userRole);
@@ -193,11 +187,9 @@ const login = async () => {
     } else {
       // Messages d'erreur professionnels - NE PAS EFFACER AUTOMATIQUEMENT
       error.value = getErrorMessage(result.error);
-      console.error('❌ Échec de connexion:', result.error);
-      console.log('🚫 Message d\'erreur affiché:', error.value);
     }
   } catch (err) {
-    console.error('Erreur de connexion:', err);
+    
     error.value = getErrorMessage(err.message);
   } finally {
     loading.value = false;

@@ -423,7 +423,12 @@ export default {
           !this.formData.dateReprise ||
           !this.formData.signatureEmploye
         ) {
-          alert("Veuillez remplir tous les champs obligatoires");
+          this.$toast.add({
+            severity: 'warn',
+            summary: 'Champs requis',
+            detail: 'Veuillez remplir tous les champs obligatoires',
+            life: 4000
+          });
           return;
         }
 
@@ -433,7 +438,12 @@ export default {
           !this.formData.fractionne &&
           !this.formData.legal
         ) {
-          alert("Veuillez sélectionner au moins un type de congé");
+          this.$toast.add({
+            severity: 'warn',
+            summary: 'Type de congé requis',
+            detail: 'Veuillez sélectionner au moins un type de congé',
+            life: 4000
+          });
           return;
         }
 
@@ -441,12 +451,22 @@ export default {
         const id = await this.congesStore.soumettreDemande(this.formData);
 
         // Afficher un message de succès
-        alert(`Demande soumise avec succès. Numéro de demande : ${id}`);
+        this.$toast.add({
+          severity: 'success',
+          summary: 'Demande soumise',
+          detail: `Demande soumise avec succès. Numéro : ${id}`,
+          life: 3000
+        });
 
         // Émettre un événement pour fermer le formulaire
         this.$emit("close");
       } catch (error) {
-        alert("Erreur lors de la soumission de la demande : " + error.message);
+        this.$toast.add({
+          severity: 'error',
+          summary: 'Erreur de soumission',
+          detail: 'Erreur lors de la soumission : ' + error.message,
+          life: 5000
+        });
       }
     },
   },

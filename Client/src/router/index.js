@@ -461,7 +461,6 @@ router.beforeEach(async (to, from, next) => {
   
   // Vérifier si l'utilisateur est authentifié
   if (!userStore.isLoggedIn) {
-    console.log('🔒 Utilisateur non authentifié, redirection vers login');
     next('/');
     return;
   }
@@ -471,7 +470,6 @@ router.beforeEach(async (to, from, next) => {
   const requiredRole = getRequiredRoleForRoute(to.path);
   
   if (requiredRole && !hasPermission(userRole, requiredRole)) {
-    console.log('🚫 Accès refusé pour le rôle:', userRole, 'route:', to.path);
     next(getDefaultDashboard(userRole));
     return;
   }
@@ -525,8 +523,8 @@ function hasPermission(userRole, requiredRole) {
 // Mise à jour du titre de la page
 router.afterEach((to) => {
   document.title = to.meta.title
-    ? `${to.meta.title} - App Congés`
-    : "App Congés";
+    ? `${to.meta.title} - Congés SENELEC`
+    : "Congés SENELEC";
 });
 
 export default router;

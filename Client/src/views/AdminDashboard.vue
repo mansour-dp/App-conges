@@ -1,8 +1,11 @@
 <template>
   <v-app>
     <v-layout class="admin-dashboard-layout">
-      <AdminSidebar />
-      <AdminToolbar :title="currentTitle" />
+      <AdminSidebar :is-open="isSidebarOpen" />
+      <AdminToolbar 
+        :title="currentTitle" 
+        @toggle-sidebar="toggleSidebar"
+      />
       <v-main>
         <router-view />
       </v-main>
@@ -17,6 +20,16 @@ import AdminToolbar from "@/components/admin/AdminToolbar.vue";
 export default {
   name: "AdminDashboard",
   components: { AdminSidebar, AdminToolbar },
+  data() {
+    return {
+      isSidebarOpen: false, // Sidebar fermée par défaut
+    };
+  },
+  methods: {
+    toggleSidebar() {
+      this.isSidebarOpen = !this.isSidebarOpen;
+    },
+  },
   computed: {
     currentTitle() {
       // Logic to determine title based on route
