@@ -111,7 +111,7 @@ export default {
 <style scoped>
 .gestion-demandes {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-color: #f8fafc;
   font-family: "Inter", sans-serif;
   position: relative;
 }
@@ -127,7 +127,7 @@ export default {
   text-align: center;
   margin-bottom: 3rem;
   padding: 2rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-color: #f8fafc;
   border-radius: 16px;
   border-left: 4px solid #008a9b;
 }

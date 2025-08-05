@@ -104,14 +104,21 @@ export const useUserStore = defineStore('user', {
           await authApi.logout();
         }
       } catch (error) {
-        
+        console.error('Erreur lors de la déconnexion côté serveur:', error);
       } finally {
-        // Nettoyer le state et localStorage
+        // Nettoyer le state et localStorage complètement
         this.user = null;
+        this.currentUser = null;
         this.token = null;
         this.isAuthenticated = false;
+        
+        // Nettoyer tout le localStorage lié à l'auth
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('admin_token_backup');
+        localStorage.removeItem('admin_user_backup');
+        
         this.loading = false;
       }
     },

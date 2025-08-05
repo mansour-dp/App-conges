@@ -171,6 +171,8 @@ export default {
       } catch (error) {
         console.error('Erreur lors de la déconnexion:', error);
       } finally {
+        // Nettoyer complètement le localStorage
+        localStorage.clear();
         this.$router.push("/");
       }
     },
@@ -182,8 +184,7 @@ export default {
 .sidebar {
   width: 250px;
   height: 100vh;
-  background-color: var(--primary-color);
-  backdrop-filter: blur(10px);
+  background-color: #008a9b; /* Couleur bleu-vert SENELEC comme le toolbar */
   color: white;
   padding: 0;
   display: flex;
@@ -191,7 +192,7 @@ export default {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 100;
+  z-index: 2100;
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
@@ -205,7 +206,7 @@ export default {
 }
 
 .user-profile-section {
-  background-color: var(--secondary-color);
+  background-color: #006b7a; /* Couleur bleu-vert plus foncée */
   padding: 20px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 0;
@@ -360,13 +361,17 @@ export default {
 
 .nav-item:hover {
   color: white;
-  background-color: rgba(38, 21, 85, 0.8); /* Couleur mauve SENELEC */
+  background-color: rgba(255, 255, 255, 0.15); /* Effet transparent blanc */
+  transform: translateX(5px); /* Léger décalage vers la droite */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Ombre subtile */
 }
 
 .nav-item.active {
   color: white;
-  background-color: #261555; /* Couleur mauve SENELEC */
+  background-color: rgba(255, 255, 255, 0.2); /* Plus opaque pour l'état actif */
   font-weight: 600;
+  transform: translateX(3px); /* Léger décalage permanent */
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15); /* Ombre plus prononcée */
 }
 
 .nav-item.active::before {

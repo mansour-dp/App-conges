@@ -275,7 +275,7 @@ export default {
   max-width: 1400px;
   margin: 0 auto;
   font-family: "Inter", sans-serif;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-color: #f8fafc;
   min-height: 100vh;
 }
 

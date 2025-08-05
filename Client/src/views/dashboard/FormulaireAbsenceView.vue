@@ -40,7 +40,7 @@ export default {
 }
 
 .page-header {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-color: #f8fafc;
   border-radius: 16px;
   padding: 2rem;
   margin-bottom: 2rem;

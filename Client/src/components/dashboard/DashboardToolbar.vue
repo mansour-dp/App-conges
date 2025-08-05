@@ -184,7 +184,8 @@ export default {
     return { 
       notificationsStore,
       isSimulationActive,
-      returnToAdmin
+      returnToAdmin,
+      authStore // Exposer authStore pour l'utiliser dans les méthodes
     }
   },
   props: {
@@ -225,9 +226,17 @@ export default {
   },
   emits: ["toggle-sidebar"],
   methods: {
-    logout() {
-      localStorage.removeItem("user");
-      this.$router.push("/");
+    async logout() {
+      try {
+        // Utiliser authStore exposé depuis le setup()
+        await this.authStore.logout();
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+      } finally {
+        // Nettoyer complètement le localStorage
+        localStorage.clear();
+        this.$router.push("/");
+      }
     },
     markAsRead(id) {
       this.notificationsStore.markAsRead(id)

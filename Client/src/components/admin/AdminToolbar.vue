@@ -91,10 +91,12 @@ const pendingDemandesCount = computed(() => pendingDemandes.value.length);
 const handleLogout = async () => {
   try {
     await userStore.logout();
-    router.push('/');
   } catch (error) {
-    
-    // Forcer la redirection même en cas d'erreur
+    console.error('Erreur lors de la déconnexion:', error);
+  } finally {
+    // Nettoyer complètement le localStorage
+    localStorage.clear();
+    // Forcer la redirection vers la page de connexion
     window.location.href = '/';
   }
 };

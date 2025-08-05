@@ -84,45 +84,14 @@ export default {
 .employe-dashboard {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
-  position: relative;
-  overflow: hidden;
+  background-color: #f8fafc;
 }
 
-.employe-dashboard::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    circle,
-    rgba(0, 138, 155, 0.05) 0%,
-    transparent 50%
-  );
-  animation: gradientMove 15s linear infinite;
-  z-index: 0;
-}
-
-@keyframes gradientMove {
-  0% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(-30px, 20px);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
-}
 
 .dashboard-content {
   flex: 1;
   padding: 25px;
   margin-left: 250px; /* Correspond à la largeur du sidebar */
-  position: relative;
-  z-index: 1;
   transition: margin-left 0.3s ease; /* Ajouter une transition pour le mouvement */
 }
 
@@ -133,8 +102,6 @@ export default {
 .content-container {
   padding: 15px;
   position: relative;
-  backdrop-filter: blur(10px);
-  border-radius: 15px;
 }
 
 /* Transitions pour le router-view */
