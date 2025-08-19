@@ -22,25 +22,41 @@
       </div>
     </div>
 
-    <div class="demandes-list">
+    <div v-if="loading" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      <h3>Chargement des demandes...</h3>
+      <p>Veuillez patienter pendant le chargement des données.</p>
+    </div>
+
+    <div v-else-if="error" class="error-state">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h3>Erreur de chargement</h3>
+      <p>{{ error }}</p>
+      <button @click="chargerDemandes" class="retry-btn">
+        <i class="fas fa-redo"></i>
+        Réessayer
+      </button>
+    </div>
+
+    <div v-else class="demandes-list">
       <div
         v-for="demande in filteredDemandes"
         :key="demande.id"
         class="demande-card"
-        :class="getStatusClass(demande.status)"
+        :class="getStatusClass(demande.statut)"
       >
         <div class="demande-header">
           <div class="demande-info">
-            <h3>{{ demande.prenom }} {{ demande.nom }}</h3>
-            <p class="matricule">Matricule: {{ demande.matricule }}</p>
-            <p class="unite">{{ demande.unite }}</p>
+            <h3>{{ demande.user?.first_name }} {{ demande.user?.name }}</h3>
+            <p class="matricule">Matricule: {{ demande.user?.matricule }}</p>
+            <p class="unite">{{ demande.user?.department?.nom }}</p>
           </div>
           <div class="demande-status">
-            <span :class="['status-badge', getStatusClass(demande.status)]">
-              {{ getStatusLabel(demande.status) }}
+            <span :class="['status-badge', getStatusClass(demande.statut)]">
+              {{ getStatusLabel(demande.statut) }}
             </span>
             <span class="date-demande">
-              {{ formatDate(demande.dateDemande) }}
+              {{ formatDate(demande.date_soumission) }}
             </span>
           </div>
         </div>
@@ -48,18 +64,17 @@
         <div class="demande-details">
           <div class="detail-row">
             <span class="detail-label">Type de demande:</span>
-            <span class="detail-value">{{ demande.typeDemande }}</span>
+            <span class="detail-value">{{ demande.type_demande }}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Période:</span>
             <span class="detail-value">
-              {{ formatDate(demande.dateDebut) }} -
-              {{ formatDate(demande.dateFin) }}
+              {{ formatDate(demande.date_debut) }} - {{ formatDate(demande.date_fin) }}
             </span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Durée:</span>
-            <span class="detail-value">{{ demande.duree }} jour(s)</span>
+            <span class="detail-value">{{ demande.duree_jours }} jour(s)</span>
           </div>
           <div class="detail-row" v-if="demande.motif">
             <span class="detail-label">Motif:</span>
@@ -68,9 +83,13 @@
         </div>
 
         <div class="demande-actions">
-          <button @click="voirDetails(demande)" class="btn-details">
-            <i class="fas fa-eye"></i>
-            Voir détails
+          <button 
+            v-if="demande.statut === 'en_attente_superieur' || demande.statut === 'en_attente_directeur_unite' || demande.statut === 'en_attente_responsable_rh' || demande.statut === 'en_attente_directeur_rh'"
+            @click="validerDemande(demande)" 
+            class="btn-validate"
+          >
+            <i class="fas fa-gavel"></i>
+            Valider
           </button>
         </div>
       </div>
@@ -88,154 +107,212 @@
       </div>
     </div>
 
-    <!-- Modal pour les détails -->
-    <div v-if="showDetailsModal" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Détails de la demande</h2>
-          <button @click="closeModal" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <!-- Contenu du modal -->
-        </div>
-      </div>
-    </div>
+    <!-- Modal de validation uniquement -->
+    <ValidationModal
+      v-model="showValidationModal"
+      :demande="selectedDemande"
+      :is-last-validator="isLastValidator"
+      @submit="handleValidationSubmit"
+    />
   </div>
 </template>
 
 <script>
+import { ref, onMounted, computed } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import { demandesApi } from '@/services/api'
+import { useNotificationsStore } from '@/stores/notifications'
+import ValidationModal from '@/components/workflow/ValidationModal.vue'
+
 export default {
   name: "DemandesEnAttenteView",
-  data() {
-    return {
-      searchTerm: "",
-      currentFilter: "toutes",
-      showDetailsModal: false,
-      selectedDemande: null,
-      filters: [
-        { label: "Toutes", value: "toutes" },
-        { label: "En attente", value: "en_attente" },
-        { label: "Approuvées", value: "approuvee" },
-        { label: "Rejetées", value: "rejetee" },
-      ],
-      demandes: [
-        {
-          id: 1,
-          prenom: "Fatou",
-          nom: "Sall",
-          matricule: "EMP001",
-          unite: "Service Informatique",
-          typeDemande: "Congé annuel",
-          dateDebut: "2024-04-15",
-          dateFin: "2024-04-19",
-          duree: 5,
-          motif: "Vacances familiales",
-          status: "en_attente",
-          dateDemande: "2024-03-20",
-        },
-        {
-          id: 2,
-          prenom: "Moussa",
-          nom: "Diallo",
-          matricule: "EMP002",
-          unite: "Service Informatique",
-          typeDemande: "Congé maladie",
-          dateDebut: "2024-03-25",
-          dateFin: "2024-03-27",
-          duree: 3,
-          motif: "Consultation médicale",
-          status: "approuvee",
-          dateDemande: "2024-03-18",
-        },
-        {
-          id: 3,
-          prenom: "Aissatou",
-          nom: "Ba",
-          matricule: "EMP003",
-          unite: "Service Informatique",
-          typeDemande: "Report de congés",
-          dateDebut: "2024-05-10",
-          dateFin: "2024-05-15",
-          duree: 6,
-          motif: "Report pour raisons personnelles",
-          status: "rejetee",
-          dateDemande: "2024-03-22",
-        },
-      ],
-    };
+  components: {
+    ValidationModal
   },
-  computed: {
-    filteredDemandes() {
-      let filtered = this.demandes;
+  setup() {
+    const toast = useToast()
+    const notificationsStore = useNotificationsStore()
+    const searchTerm = ref("")
+    const currentFilter = ref("toutes")
+    const showValidationModal = ref(false)
+    const selectedDemande = ref(null)
+    const isLastValidator = ref(false)
+    const loading = ref(false)
+    const error = ref(null)
+
+    const filters = [
+      { label: "Toutes", value: "toutes" },
+      { label: "En attente supérieur", value: "en_attente_superieur" },
+      { label: "En attente directeur", value: "en_attente_directeur_unite" },
+      { label: "En attente RH", value: "en_attente_responsable_rh" },
+      { label: "En attente DRH", value: "en_attente_directeur_rh" },
+    ]
+
+    const demandes = ref([])
+
+    // Charger les demandes depuis l'API
+    const chargerDemandes = async () => {
+      try {
+        loading.value = true
+        error.value = null
+        
+        const response = await demandesApi.getDemandesRecues()
+        
+        if (response.data && response.data.success) {
+          demandes.value = response.data.data || []
+        } else {
+          demandes.value = []
+        }
+      } catch (err) {
+        console.error('Erreur lors du chargement des demandes:', err)
+        error.value = `Erreur ${err.response?.status || 'inconnue'}: ${err.response?.data?.message || err.message}`
+        
+        toast.add({
+          severity: 'error',
+          summary: 'Erreur',
+          detail: `Erreur lors du chargement des demandes: ${err.response?.status || err.message}`,
+          life: 5000
+        })
+        demandes.value = []
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const filteredDemandes = computed(() => {
+      let filtered = demandes.value
 
       // Filtre par statut
-      if (this.currentFilter !== "toutes") {
-        filtered = filtered.filter((d) => d.status === this.currentFilter);
+      if (currentFilter.value !== "toutes") {
+        filtered = filtered.filter((d) => d.statut === currentFilter.value)
       }
 
       // Filtre par recherche
-      if (this.searchTerm) {
-        const term = this.searchTerm.toLowerCase();
+      if (searchTerm.value) {
+        const term = searchTerm.value.toLowerCase()
         filtered = filtered.filter(
           (d) =>
-            d.nom.toLowerCase().includes(term) ||
-            d.prenom.toLowerCase().includes(term) ||
-            d.matricule.toLowerCase().includes(term) ||
-            d.unite.toLowerCase().includes(term)
-        );
+            d.user?.name?.toLowerCase().includes(term) ||
+            d.user?.first_name?.toLowerCase().includes(term) ||
+            d.user?.matricule?.toLowerCase().includes(term) ||
+            d.user?.department?.nom?.toLowerCase().includes(term)
+        )
       }
 
-      return filtered;
-    },
-  },
-  methods: {
-    formatDate(dateString) {
-      if (!dateString) return "";
-      const options = { year: "numeric", month: "2-digit", day: "2-digit" };
-      return new Date(dateString).toLocaleDateString("fr-FR", options);
-    },
-    getStatusClass(status) {
+      return filtered
+    })
+
+    const formatDate = (dateString) => {
+      if (!dateString) return ""
+      const options = { year: "numeric", month: "2-digit", day: "2-digit" }
+      return new Date(dateString).toLocaleDateString("fr-FR", options)
+    }
+
+    const getStatusClass = (status) => {
       switch (status) {
-        case "en_attente":
-          return "pending";
-        case "approuvee":
-          return "approved";
-        case "rejetee":
-          return "rejected";
+        case "en_attente_superieur":
+        case "en_attente_directeur_unite":
+        case "en_attente_responsable_rh":
+        case "en_attente_directeur_rh":
+          return "pending"
+        case "approuve":
+          return "approved"
+        case "rejete":
+          return "rejected"
         default:
-          return "";
+          return ""
       }
-    },
-    getStatusLabel(status) {
+    }
+
+    const getStatusLabel = (status) => {
       switch (status) {
-        case "en_attente":
-          return "En attente";
-        case "approuvee":
-          return "Approuvée";
-        case "rejetee":
-          return "Rejetée";
+        case "en_attente_superieur":
+          return "En attente supérieur"
+        case "en_attente_directeur_unite":
+          return "En attente directeur unité"
+        case "en_attente_responsable_rh":
+          return "En attente responsable RH"
+        case "en_attente_directeur_rh":
+          return "En attente directeur RH"
+        case "approuve":
+          return "Approuvée"
+        case "rejete":
+          return "Rejetée"
         default:
-          return status;
+          return status
       }
-    },
-    setFilter(filter) {
-      this.currentFilter = filter;
-    },
-    filterDemandes() {
+    }
+
+    const setFilter = (filter) => {
+      currentFilter.value = filter
+    }
+
+    const filterDemandes = () => {
       // La logique de filtrage est gérée dans le computed
-    },
-    voirDetails(demande) {
-      this.selectedDemande = demande;
-      this.showDetailsModal = true;
-    },
-    closeModal() {
-      this.showDetailsModal = false;
-      this.selectedDemande = null;
-    },
-  },
-};
+    }
+
+    const validerDemande = (demande) => {
+      selectedDemande.value = demande
+      // Détermine s'il s'agit du dernier validateur
+      isLastValidator.value = demande.statut === 'en_attente_directeur_rh'
+      showValidationModal.value = true
+    }
+
+    const handleValidationSubmit = async (validationData) => {
+      try {
+        loading.value = true
+        await demandesApi.validerAvecSuivant({
+          demande_id: selectedDemande.value.id,
+          ...validationData
+        })
+        
+        toast.add({
+          severity: 'success',
+          summary: 'Succès',
+          detail: 'Demande validée avec succès',
+          life: 3000
+        })
+        showValidationModal.value = false
+        await chargerDemandes()
+      } catch (error) {
+        console.error('Erreur lors de la validation:', error)
+        toast.add({
+          severity: 'error',
+          summary: 'Erreur',
+          detail: 'Erreur lors de la validation de la demande',
+          life: 5000
+        })
+      } finally {
+        loading.value = false
+      }
+    }
+
+    onMounted(() => {
+      chargerDemandes()
+    })
+
+    return {
+      searchTerm,
+      currentFilter,
+      showValidationModal,
+      selectedDemande,
+      isLastValidator,
+      loading,
+      error,
+      filters,
+      demandes,
+      filteredDemandes,
+      formatDate,
+      getStatusClass,
+      getStatusLabel,
+      setFilter,
+      filterDemandes,
+      validerDemande,
+      handleValidationSubmit,
+      chargerDemandes
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -272,31 +349,34 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  gap: 20px;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .search-box {
   position: relative;
+  max-width: 300px;
   flex: 1;
-  max-width: 400px;
 }
 
 .search-box i {
   position: absolute;
-  left: 12px;
+  left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .search-box input {
   width: 100%;
-  padding: 12px 12px 12px 40px;
+  padding: 12px 12px 12px 45px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 14px;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .search-box input:focus {
@@ -342,51 +422,26 @@ export default {
   background: white;
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid #ddd;
-  transition: all 0.2s ease;
-  border: 1px solid #e9ecef;
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border-left: 4px solid #e2e8f0;
 }
 
 .demande-card:hover {
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
-}
-
-.demande-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(135deg, #008a9b, #00b4d8);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .demande-card.pending {
   border-left-color: #b10064;
 }
 
-.demande-card.pending::before {
-  background: linear-gradient(135deg, #b10064, #d63384);
-}
-
 .demande-card.approved {
   border-left-color: #008a9b;
 }
 
-.demande-card.approved::before {
-  background: linear-gradient(135deg, #008a9b, #00b4d8);
-}
-
 .demande-card.rejected {
   border-left-color: #261555;
-}
-
-.demande-card.rejected::before {
-  background: linear-gradient(135deg, #261555, #4c1d95);
 }
 
 .demande-header {
@@ -398,104 +453,115 @@ export default {
 
 .demande-info h3 {
   margin: 0 0 5px 0;
-  font-size: 18px;
   color: #261555;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.matricule {
+.demande-info .matricule {
   margin: 0 0 3px 0;
-  color: #64748b;
   font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
 }
 
-.unite {
+.demande-info .unite {
   margin: 0;
-  color: #64748b;
   font-size: 13px;
+  color: #94a3b8;
 }
 
 .demande-status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 5px;
+  text-align: right;
 }
 
 .status-badge {
+  display: inline-block;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
 }
 
 .status-badge.pending {
-  background: rgba(177, 0, 100, 0.15);
+  background: rgba(177, 0, 100, 0.1);
   color: #b10064;
-  border: 1px solid rgba(177, 0, 100, 0.3);
 }
 
 .status-badge.approved {
-  background: rgba(0, 138, 155, 0.15);
+  background: rgba(0, 138, 155, 0.1);
   color: #008a9b;
-  border: 1px solid rgba(0, 138, 155, 0.3);
 }
 
 .status-badge.rejected {
-  background: rgba(38, 21, 85, 0.15);
+  background: rgba(38, 21, 85, 0.1);
   color: #261555;
-  border: 1px solid rgba(38, 21, 85, 0.3);
 }
 
 .date-demande {
+  display: block;
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .demande-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
   margin-bottom: 15px;
+  padding: 15px;
+  background: #f8fafc;
+  border-radius: 10px;
 }
 
 .detail-row {
   display: flex;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .detail-label {
   font-weight: 500;
   color: #64748b;
-  min-width: 120px;
   font-size: 14px;
 }
 
 .detail-value {
+  font-weight: 600;
   color: #261555;
   font-size: 14px;
 }
 
 .demande-actions {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
 }
 
-.btn-details {
-  padding: 8px 16px;
+.btn-validate {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 20px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  display: flex;
-  align-items: center;
   gap: 5px;
   transition: all 0.2s ease;
   font-weight: 500;
-  background: #f1f5f9;
-  color: #64748b;
+  background: linear-gradient(135deg, #008a9b, #00b4d8);
+  color: white;
 }
 
-.btn-details:hover {
-  background: #e2e8f0;
+.btn-validate:hover {
+  background: linear-gradient(135deg, #007c8b, #00a2c7);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 138, 155, 0.3);
 }
 
 .empty-state {
@@ -518,6 +584,46 @@ export default {
 .empty-state p {
   margin: 0;
   font-size: 16px;
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+}
+
+.loading-state i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #008a9b;
+}
+
+.error-state i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #dc3545;
+}
+
+.error-state h3 {
+  margin: 0 0 10px 0;
+  color: #dc3545;
+}
+
+.retry-btn {
+  background: #008a9b;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.3s ease;
+  font-size: 14px;
+}
+
+.retry-btn:hover {
+  background: #007088;
 }
 
 /* Modal styles */
@@ -589,15 +695,15 @@ export default {
 
   .demande-header {
     flex-direction: column;
-    gap: 10px;
-  }
-
-  .demande-status {
     align-items: flex-start;
   }
 
-  .demande-actions {
-    flex-wrap: wrap;
+  .demande-status {
+    text-align: left;
+  }
+
+  .demande-details {
+    grid-template-columns: 1fr;
   }
 }
 </style>

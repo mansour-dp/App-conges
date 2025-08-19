@@ -246,7 +246,7 @@
 </template>
 
 <script>
-import SignaturePad from "./SignaturePad.vue";
+import SignaturePad from "../ui/SignaturePad.vue";
 
 export default {
   name: "DemandeReport",

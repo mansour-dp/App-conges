@@ -9,6 +9,8 @@ class DemandeConge extends Model
 {
     use HasFactory;
 
+    protected $table = 'demandes_conges';
+
     protected $fillable = [
         'user_id',
         'type_demande',
@@ -22,15 +24,24 @@ class DemandeConge extends Model
         'date_validation',
         'commentaire_validation',
         'signatures',
+        'signature_interresse',
         'pieces_jointes',
+        'validation_workflow',
+        'current_validator',
+        'workflow_step',
+        'date_soumission',
+        'form_data',
     ];
 
     protected $casts = [
         'date_debut' => 'date',
         'date_fin' => 'date',
         'date_validation' => 'datetime',
+        'date_soumission' => 'datetime',
         'signatures' => 'array',
         'pieces_jointes' => 'array',
+        'validation_workflow' => 'array',
+        'form_data' => 'array',
     ];
 
     // Relations
@@ -40,6 +51,16 @@ class DemandeConge extends Model
     }
 
     public function validateur()
+    {
+        return $this->belongsTo(User::class, 'valide_par');
+    }
+
+    public function currentValidator()
+    {
+        return $this->belongsTo(User::class, 'current_validator');
+    }
+
+    public function validateurFinal()
     {
         return $this->belongsTo(User::class, 'valide_par');
     }
@@ -64,7 +85,12 @@ class DemandeConge extends Model
     public function getStatutLabelAttribute()
     {
         return [
+            'brouillon' => 'Brouillon',
             'en_attente' => 'En attente',
+            'en_attente_superieur' => 'En attente supérieur',
+            'en_attente_directeur_unite' => 'En attente directeur unité',
+            'en_attente_responsable_rh' => 'En attente responsable RH',
+            'en_attente_directeur_rh' => 'En attente directeur RH',
             'approuve' => 'Approuvé',
             'rejete' => 'Rejeté',
             'annule' => 'Annulé',

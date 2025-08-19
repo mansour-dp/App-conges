@@ -54,6 +54,12 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // Gestion des erreurs Bad Request (400)
+    if (error.response?.status === 400) {
+      error.message = error.response.data.message || 'Requête invalide. Vérifiez les données envoyées.';
+      console.error('Erreur 400 - Détails:', error.response.data);
+    }
+
     // Gestion des erreurs de limitation (429)
     if (error.response?.status === 429) {
       error.message = 'Trop de tentatives. Veuillez patienter avant de réessayer.';
@@ -98,6 +104,8 @@ export const usersApi = {
   resetPasswordWithData: (id, passwordData) => apiClient.post(`/users/${id}/reset-password`, passwordData),
   managers: () => apiClient.get('/managers'),
   simulateLogin: (userId) => apiClient.post(`/users/${userId}/simulate-login`),
+  searchByEmail: (email) => apiClient.get(`/users/search-by-email?email=${encodeURIComponent(email)}`),
+  searchByName: (name) => apiClient.get(`/users/search-by-name?name=${encodeURIComponent(name)}`),
 };
 
 export const rolesApi = {
@@ -124,7 +132,10 @@ export const demandesApi = {
   update: (id, data) => apiClient.put(`/demandes-conges/${id}`, data),
   delete: (id) => apiClient.delete(`/demandes-conges/${id}`),
   validate: (id, data) => apiClient.post(`/demandes-conges/${id}/validate`, data),
-  demandesAValider: (params = {}) => apiClient.get('/demandes-a-valider', { params }),
+  getDemandesEnAttente: (params = {}) => apiClient.get('/demandes-a-valider', { params }),
+  getDemandesRecues: (params = {}) => apiClient.get('/demandes-conges/recues', { params }),
+  soumettreAvecWorkflow: (data) => apiClient.post('/demandes-conges/submit-with-workflow', data),
+  validerAvecSuivant: (data) => apiClient.post('/demandes-conges/validate-with-next', data),
 };
 
 export const notificationsApi = {

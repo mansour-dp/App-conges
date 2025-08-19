@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useUserStore } from "@/stores/users";
 import LoginView from "../views/LoginView.vue";
 import EmployeDashboard from "../views/EmployeDashboard.vue";
 import SuperieurDashboard from "../views/SuperieurDashboard.vue";
@@ -440,7 +441,6 @@ const router = createRouter({
 
 // Guard d'authentification
 router.beforeEach(async (to, from, next) => {
-  const { useUserStore } = await import('@/stores/users');
   const userStore = useUserStore();
   
   // Routes publiques (ne nécessitent pas d'authentification)

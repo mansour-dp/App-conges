@@ -41,7 +41,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/recent-activity', [DashboardController::class, 'recentActivity']);
     Route::get('/dashboard/stats-manager', [DashboardController::class, 'statsManager']);
 
-    // Demandes de congés
+    // Routes spécifiques AVANT les ressources
+    Route::get('/demandes-conges/recues', [DemandeCongeController::class, 'demandesRecues']);
+    Route::post('/demandes-conges/submit-with-workflow', [DemandeCongeController::class, 'submitWithWorkflow']);
+    Route::post('/demandes-conges/validate-with-next', [DemandeCongeController::class, 'validateWithNext']);
+    Route::get('/users/search-by-email', [DemandeCongeController::class, 'searchUsersByEmail']);
+    Route::get('/users/search-by-name', [DemandeCongeController::class, 'searchUsersByName']);
+
+    // Demandes de congés (ressource générale)
     Route::apiResource('demandes-conges', DemandeCongeController::class);
     Route::post('/demandes-conges/{demandeConge}/validate', [DemandeCongeController::class, 'validateDemande']);
     Route::get('/demandes-a-valider', [DemandeCongeController::class, 'demandesAValider']);

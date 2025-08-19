@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('departments', function (Blueprint $table) {
-            //
+        Schema::table('demandes_conges', function (Blueprint $table) {
+            $table->json('form_data')->nullable()->after('date_soumission');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('departments', function (Blueprint $table) {
-            //
+        Schema::table('demandes_conges', function (Blueprint $table) {
+            $table->dropColumn('form_data');
         });
     }
 };

@@ -267,8 +267,8 @@
         <button
           type="button"
           class="btn-envoyer"
-          @click="envoyerDemande"
-          :disabled="demandeEnvoyee"
+          @click="soumettreDemandeAvecWorkflow"
+          :disabled="demandeEnvoyee || !formData.signatureEmploye"
         >
           Soumettre
         </button>
@@ -277,23 +277,34 @@
         Demande envoyée avec succès !
       </div>
     </form>
+    
+    <!-- Modals -->
     <SignaturePad
       v-if="showSignaturePad"
       @close="showSignaturePad = false"
       @signature-saved="sauvegarderSignature"
     />
+    
+    <WorkflowModal
+      v-model="showWorkflowModal"
+      :demande="currentDemande"
+      @submit="handleWorkflowSubmit"
+    />
   </div>
 </template>
 
 <script>
-import SignaturePad from "./SignaturePad.vue";
+import SignaturePad from "../ui/SignaturePad.vue";
+import WorkflowModal from "../workflow/WorkflowModal.vue";
 import { useCongesStore } from "@/stores/conges";
 import { useNotificationsStore } from "@/stores/notifications";
+import { demandesApi } from "@/services/api";
 
 export default {
   name: "PlanificationConges",
   components: {
     SignaturePad,
+    WorkflowModal,
   },
   setup() {
     const congesStore = useCongesStore();
@@ -304,6 +315,8 @@ export default {
     return {
       showSignaturePad: false,
       currentSignatureType: null,
+      showWorkflowModal: false,
+      currentDemande: null,
       formData: {
         dateCreation: new Date().toISOString().split("T")[0],
         prenom: "",
@@ -370,27 +383,169 @@ export default {
     imprimerFiche() {
       window.print();
     },
-    envoyerDemande() {
-      // Validation simple
-      if (!this.formData.prenom || !this.formData.nom) {
-        this.notificationsStore.notifyError('Veuillez remplir tous les champs obligatoires');
-        return;
+    async soumettreDemandeAvecWorkflow() {
+      try {
+        // Validation des champs obligatoires
+        if (!this.validateForm()) {
+          return;
+        }
+
+        // Créer la demande d'abord
+        const demandeData = this.prepareDemandeData();
+        console.log('Données à envoyer:', demandeData); // Debug
+        
+        const response = await demandesApi.create(demandeData);
+        
+        if (response.data.success) {
+          this.currentDemande = response.data.data;
+          this.showWorkflowModal = true; // Ouvrir le modal de workflow
+        } else {
+          throw new Error(response.data.message || 'Erreur lors de la création de la demande');
+        }
+        
+      } catch (error) {
+        console.error('Erreur lors de la soumission:', error);
+        console.error('Détails de l\'erreur:', error.response?.data); // Plus de détails
+        this.$toast?.add({
+          severity: 'error',
+          summary: 'Erreur',
+          detail: 'Erreur lors de la création de la demande: ' + (error.response?.data?.message || error.message),
+          life: 5000
+        });
+      }
+    },
+
+    validateForm() {
+      if (!this.formData.prenom || !this.formData.nom || !this.formData.matricule) {
+        this.$toast?.add({
+          severity: 'warn',
+          summary: 'Champs requis',
+          detail: 'Veuillez remplir tous les champs obligatoires',
+          life: 4000
+        });
+        return false;
+      }
+
+      if (!this.formData.dateDebut || !this.formData.dateFin) {
+        this.$toast?.add({
+          severity: 'warn',
+          summary: 'Dates requises',
+          detail: 'Veuillez saisir les dates de début et fin',
+          life: 4000
+        });
+        return false;
+      }
+
+      if (!this.formData.signatureEmploye) {
+        this.$toast?.add({
+          severity: 'warn',
+          summary: 'Signature requise',
+          detail: 'Votre signature est obligatoire pour soumettre la demande',
+          life: 4000
+        });
+        return false;
       }
 
       if (!this.formData.annuel && !this.formData.fractionne && !this.formData.legal) {
-        this.notificationsStore.notifyWarning('Veuillez sélectionner au moins un type de congé');
-        return;
+        this.$toast?.add({
+          severity: 'warn',
+          summary: 'Type de congé requis',
+          detail: 'Veuillez sélectionner au moins un type de congé',
+          life: 4000
+        });
+        return false;
       }
 
-      this.demandeEnvoyee = true;
-      this.confirmation = true;
-      
-      // Notification de succès
-      this.notificationsStore.notifyDemandeSubmitted(`${this.formData.prenom} ${this.formData.nom}`);
-      
-      setTimeout(() => {
-        this.confirmation = false;
-      }, 3000);
+      return true;
+    },
+
+    prepareDemandeData() {
+      // Déterminer le type de demande basé sur les cases cochées
+      let typeDemande = 'conge_annuel'; // Par défaut
+      if (this.formData.fractionne) typeDemande = 'conges_fractionnes'; // Congés fractionnés
+      if (this.formData.legal) typeDemande = 'autres_conges_legaux'; // Autres congés légaux
+
+      const baseData = {
+        type_demande: typeDemande,
+        date_debut: this.formData.dateDebut,
+        date_fin: this.formData.dateFin,
+        duree_jours: this.nbJours,
+        motif: `Demande de ${this.getTypeDemandeLabel()} - ${this.formData.prenom} ${this.formData.nom}`,
+        commentaire: this.formData.commentaire || '',
+        statut: 'brouillon', // Statut initial avant workflow
+        form_data: this.formData // Sauvegarder les données du formulaire
+      };
+
+      // Ajouter les signatures seulement si elles existent
+      if (this.formData.signatureEmploye) {
+        baseData.signatures = {
+          employe: {
+            data: this.formData.signatureEmploye,
+            name: `${this.formData.prenom} ${this.formData.nom}`,
+            timestamp: new Date().toISOString(),
+            role: 'Demandeur'
+          }
+        };
+      }
+
+      return baseData;
+    },
+
+    getTypeDemandeLabel() {
+      if (this.formData.annuel) return 'congé annuel';
+      if (this.formData.fractionne) return 'congé fractionné';
+      if (this.formData.legal) return 'autres congés légaux';
+      return 'congé';
+    },
+
+    async handleWorkflowSubmit(workflowData) {
+      try {
+        if (!this.currentDemande?.id) {
+          throw new Error('Aucune demande créée pour le workflow');
+        }
+
+        console.log('Données envoyées au workflow:', {
+          demande_id: this.currentDemande.id,
+          superieur_email: workflowData.emailSuperieur
+        });
+
+        // Envoyer la demande avec l'email du supérieur
+        const response = await demandesApi.soumettreAvecWorkflow({
+          demande_id: this.currentDemande.id,
+          superieur_email: workflowData.emailSuperieur
+          // La signature de l'employé est déjà stockée dans la demande
+        });
+
+        if (response.data.success) {
+          this.demandeEnvoyee = true;
+          this.confirmation = true;
+          
+          this.$toast?.add({
+            severity: 'success',
+            summary: 'Demande envoyée',
+            detail: 'Votre demande a été envoyée à votre supérieur avec succès',
+            life: 5000
+          });
+          
+          setTimeout(() => {
+            this.confirmation = false;
+            // Rediriger vers l'état des demandes selon le rôle de l'utilisateur
+            this.redirectToCorrectEtatDemandes();
+          }, 3000);
+          
+        } else {
+          throw new Error(response.data.message || 'Erreur lors de l\'envoi');
+        }
+        
+      } catch (error) {
+        console.error('Erreur workflow:', error);
+        this.$toast?.add({
+          severity: 'error',
+          summary: 'Erreur d\'envoi',
+          detail: 'Erreur lors de l\'envoi au supérieur: ' + error.message,
+          life: 5000
+        });
+      }
     },
     ouvrirPadSignature(type) {
       this.currentSignatureType = type;
@@ -469,6 +624,31 @@ export default {
         });
       }
     },
+    
+    // Méthode pour rediriger vers le bon dashboard basé sur le rôle de l'utilisateur
+    redirectToCorrectEtatDemandes() {
+      const user = this.userStore.currentUser;
+      
+      if (!user || !user.roles || user.roles.length === 0) {
+        // Par défaut, rediriger vers le dashboard employé
+        this.$router.push({ name: 'etatDemandes' });
+        return;
+      }
+
+      // Vérifier les rôles dans l'ordre de priorité
+      const roles = user.roles.map(role => role.nom || role.name || role);
+      
+      if (roles.includes('Directeur RH') || roles.includes('directeur_rh')) {
+        this.$router.push({ name: 'directeurRHEtatDemandes' });
+      } else if (roles.includes('Directeur Unité') || roles.includes('directeur_unite')) {
+        this.$router.push({ name: 'directeurUniteEtatDemandes' });
+      } else if (roles.includes('Supérieur') || roles.includes('superieur') || roles.includes('Superviseur') || roles.includes('superviseur')) {
+        this.$router.push({ name: 'superieurEtatDemandes' });
+      } else {
+        // Rôle employé ou autre
+        this.$router.push({ name: 'etatDemandes' });
+      }
+    }
   },
   props: {
     sidebarOpen: {

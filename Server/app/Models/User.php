@@ -27,6 +27,8 @@ class User extends Authenticatable
         'date_embauche',
         'conges_annuels_total',
         'conges_annuels_restants',
+        'can_validate_leave',
+        'is_manager',
     ];
 
     protected $hidden = [
@@ -38,6 +40,8 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'date_embauche' => 'date',
         'is_active' => 'boolean',
+        'can_validate_leave' => 'boolean',
+        'is_manager' => 'boolean',
     ];
 
     // Relations
@@ -76,6 +80,11 @@ class User extends Authenticatable
         return $this->hasMany(DemandeConge::class, 'valide_par');
     }
 
+    public function validations()
+    {
+        return $this->hasMany(DemandeConge::class, 'current_validator');
+    }
+
     // Accesseurs
     public function getFullNameAttribute()
     {
@@ -90,6 +99,20 @@ class User extends Authenticatable
 
     public function canValidateLeave()
     {
-        return $this->role && in_array($this->role->nom, ['Superieur', 'Directeur RH', 'Directeur Unité', 'Responsable RH']);
+        // Utiliser plusieurs conditions possibles
+        if ($this->can_validate_leave || $this->is_manager) {
+            return true;
+        }
+        
+        if ($this->role) {
+            return in_array($this->role->nom, ['Superieur', 'Directeur RH', 'Directeur Unité', 'Responsable RH', 'Admin', 'Manager']);
+        }
+        
+        return false;
+    }
+
+    public function hasRole($roleName)
+    {
+        return $this->role?->nom === $roleName || $this->role?->name === $roleName;
     }
 }
