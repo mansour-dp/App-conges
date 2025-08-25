@@ -3,23 +3,26 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
 
-// Import de Vuetify
+// Import de Font Awesome pour les icônes
+import "@fortawesome/fontawesome-free/css/all.css";
+
+// Import PrimeVue pour la version 4 - AVANT Vuetify
+import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
+
+// Import du thème officiel PrimeVue 4 - Aura
+import Aura from '@primevue/themes/aura';
+
+// Import des styles personnalisés SENELEC
+import './assets/styles/primevue-custom.css';
+
+// Import de Vuetify APRÈS PrimeVue
 import "vuetify/styles";
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
 import { aliases, mdi } from "vuetify/iconsets/mdi";
 import "@mdi/font/css/materialdesignicons.css";
-
-// Import de Font Awesome pour les icônes
-import "@fortawesome/fontawesome-free/css/all.css";
-
-// Import PrimeVue pour la version 4
-import PrimeVue from 'primevue/config';
-import ToastService from 'primevue/toastservice';
-
-// Import du thème officiel PrimeVue 4 - Aura
-import Aura from '@primevue/themes/aura';
 
 // Import des stores
 import { useUserStore } from "./stores/users";
@@ -41,11 +44,12 @@ const vuetify = createVuetify({
         colors: {
           primary: "#008a9b",
           secondary: "#00b4d8",
-          accent: "#82B1FF",
-          error: "#FF5252",
-          info: "#2196F3",
-          success: "#4CAF50",
-          warning: "#FFC107",
+          accent: "#82B1FF"
+          // Suppression des couleurs de toast Vuetify pour éviter les conflits avec PrimeVue
+          // error: "#FF5252",
+          // info: "#2196F3", 
+          // success: "#4CAF50",
+          // warning: "#FFC107",
         },
       },
     },

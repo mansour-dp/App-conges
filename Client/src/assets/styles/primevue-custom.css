@@ -1,0 +1,162 @@
+/* Personnalisation des couleurs PrimeVue pour SENELEC */
+:root {
+  /* Couleurs principales SENELEC */
+  --p-primary-50: #ecfeff;
+  --p-primary-100: #cffafe;
+  --p-primary-200: #a5f3fc;
+  --p-primary-300: #67e8f9; 
+  --p-primary-400: #22d3ee; 
+  --p-primary-500: #008a9b; /* Couleur principale SENELEC */
+  --p-primary-600: #0891b2;
+  --p-primary-700: #0e7490;
+  --p-primary-800: #155e75;
+  --p-primary-900: #164e63;
+  --p-primary-950: #083344; 
+
+  /* Couleurs secondaires */
+  --p-secondary-50: #f0f9ff; 
+  --p-secondary-100: #e0f2fe; 
+  --p-secondary-200: #bae6fd;
+  --p-secondary-300: #7dd3fc;
+  --p-secondary-400: #38bdf8; 
+  --p-secondary-500: #00b4d8; /* Couleur secondaire SENELEC */
+  --p-secondary-600: #0284c7;
+  --p-secondary-700: #0369a1; 
+  --p-secondary-800: #075985;
+  --p-secondary-900: #0c4a6e;
+  --p-secondary-950: #082f49;
+}
+
+/* Personnalisation des boutons */
+.p-button {
+  background-color: var(--p-primary-500);
+  border-color: var(--p-primary-500);
+}
+
+.p-button:hover {
+  background-color: var(--p-primary-600);
+  border-color: var(--p-primary-600);
+}
+
+.p-button:focus {
+  box-shadow: 0 0 0 2px var(--p-primary-200);
+}
+
+.p-button.p-button-secondary {
+  background-color: var(--p-secondary-500);
+  border-color: var(--p-secondary-500);
+}
+
+.p-button.p-button-secondary:hover {
+  background-color: var(--p-secondary-600);
+  border-color: var(--p-secondary-600);
+}
+
+/* Personnalisation des inputs */
+.p-inputtext:focus {
+  border-color: var(--p-primary-500);
+  box-shadow: 0 0 0 2px var(--p-primary-200);
+}
+
+.p-dropdown:focus {
+  border-color: var(--p-primary-500);
+  box-shadow: 0 0 0 2px var(--p-primary-200);
+}
+
+/* Personnalisation des liens */
+.p-link {
+  color: var(--p-primary-500);
+}
+
+.p-link:hover {
+  color: var(--p-primary-600);
+}
+
+/* Personnalisation du DataTable */
+.p-datatable .p-datatable-header {
+  background-color: var(--p-primary-50);
+  border-color: var(--p-primary-200);
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background-color: var(--p-primary-100);
+  color: var(--p-primary-900);
+}
+
+.p-datatable .p-datatable-tbody > tr.p-highlight {
+  background-color: var(--p-primary-50);
+  color: var(--p-primary-900);
+}
+
+/* Personnalisation du Panel */
+.p-panel .p-panel-header {
+  background-color: var(--p-primary-50);
+  border-color: var(--p-primary-200);
+  color: var(--p-primary-900);
+}
+
+/* Personnalisation du Card */
+.p-card .p-card-header {
+  background-color: var(--p-primary-50);
+  color: var(--p-primary-900);
+}
+
+/* Personnalisation du Dialog */
+.p-dialog .p-dialog-header {
+  background-color: var(--p-primary-500);
+  color: white;
+}
+
+.p-dialog .p-dialog-header .p-dialog-header-icon {
+  color: white;
+}
+
+.p-dialog .p-dialog-header .p-dialog-header-icon:hover {
+  background-color: var(--p-primary-600);
+  color:  white;
+}
+
+/* Personnalisation du Sidebar/Menu */
+.p-sidebar {
+  background-color: var(--p-primary-500);
+  color: white;
+}
+
+.p-sidebar .p-sidebar-header {
+  background-color: var(--p-primary-600);
+  color: white;
+}
+
+/* Personnalisation du Progressbar */
+.p-progressbar .p-progressbar-value {
+  background-color: var(--p-primary-500);
+}
+
+/* Personnalisation du Badge */
+.p-badge {
+  background-color: var(--p-primary-500);
+}
+
+.p-badge.p-badge-secondary {
+  background-color: var(--p-secondary-500);
+}
+
+/* Protection finale des toasts PrimeVue contre les styles globaux */
+.p-toast {
+  font-family: var(--p-font-family) !important;
+  z-index: 9999 !important;
+}
+
+.p-toast .p-toast-message {
+  font-family: inherit !important;
+}
+
+/* Correction UNIQUEMENT du message (detail) en noir - garder le titre coloré */
+.p-toast .p-toast-detail {
+  color: #1f2937 !important; /* Message en noir lisible */
+}
+
+/* Garder le titre (summary) avec sa couleur d'origine */
+.p-toast .p-toast-summary {
+  color: inherit !important; /* Garde la couleur verte/bleue/rouge du thème */
+}

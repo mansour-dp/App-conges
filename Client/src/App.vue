@@ -1,20 +1,17 @@
 <template>
   <v-app>
     <router-view />
-    <NotificationSystem />
     <!-- PrimeVue Toast global -->
     <Toast position="bottom-right" />
   </v-app>
 </template>
 
 <script>
-import NotificationSystem from '@/components/ui/NotificationSystem.vue'
-import Toast from 'primevue/toast'
+import Toast from 'primevue/toast';
 
 export default {
   name: "App",
   components: {
-    NotificationSystem,
     Toast
   }
 };

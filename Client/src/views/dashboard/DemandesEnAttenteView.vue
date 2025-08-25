@@ -122,6 +122,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { demandesApi } from '@/services/api'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useUserStore } from '@/stores/users'
 import ValidationModal from '@/components/workflow/ValidationModal.vue'
 
 export default {
@@ -132,6 +133,7 @@ export default {
   setup() {
     const toast = useToast()
     const notificationsStore = useNotificationsStore()
+    const userStore = useUserStore()
     const searchTerm = ref("")
     const currentFilter = ref("toutes")
     const showValidationModal = ref(false)
@@ -140,13 +142,39 @@ export default {
     const loading = ref(false)
     const error = ref(null)
 
-    const filters = [
-      { label: "Toutes", value: "toutes" },
-      { label: "En attente supérieur", value: "en_attente_superieur" },
-      { label: "En attente directeur", value: "en_attente_directeur_unite" },
-      { label: "En attente RH", value: "en_attente_responsable_rh" },
-      { label: "En attente DRH", value: "en_attente_directeur_rh" },
-    ]
+    // Mapping des rôles vers les statuts qu'ils peuvent voir
+    const ROLE_STATUS_MAP = {
+      'Superieur': ['en_attente_superieur'],
+      'Directeur Unité': ['en_attente_superieur', 'en_attente_directeur_unite'],
+      'Responsable RH': ['en_attente_superieur', 'en_attente_responsable_rh'],
+      'Directeur RH': ['en_attente_superieur', 'en_attente_directeur_rh'],
+      'Admin': ['en_attente_superieur', 'en_attente_directeur_unite', 'en_attente_responsable_rh', 'en_attente_directeur_rh']
+    }
+
+    // Récupérer le rôle de l'utilisateur connecté
+    const currentUserRole = computed(() => {
+      return userStore.userRole?.nom || userStore.userRole?.name || null
+    })
+
+    // Statuts autorisés pour ce rôle
+    const allowedStatuses = computed(() => {
+      return ROLE_STATUS_MAP[currentUserRole.value] || []
+    })
+
+    // Filtres dynamiques basés sur le rôle
+    const filters = computed(() => {
+      const baseFilters = [{ label: "Toutes", value: "toutes" }]
+      const allowedStatusList = allowedStatuses.value
+      
+      const statusFilters = [
+        { label: "En attente supérieur", value: "en_attente_superieur" },
+        { label: "En attente directeur", value: "en_attente_directeur_unite" },
+        { label: "En attente RH", value: "en_attente_responsable_rh" },
+        { label: "En attente DRH", value: "en_attente_directeur_rh" },
+      ].filter(filter => allowedStatusList.includes(filter.value))
+
+      return [...baseFilters, ...statusFilters]
+    })
 
     const demandes = ref([])
 
@@ -156,15 +184,28 @@ export default {
         loading.value = true
         error.value = null
         
+        console.log('🔄 Chargement des demandes pour le rôle:', currentUserRole.value)
+        console.log('📋 Statuts autorisés:', allowedStatuses.value)
+        
         const response = await demandesApi.getDemandesRecues()
         
         if (response.data && response.data.success) {
           demandes.value = response.data.data || []
+          console.log('✅ Demandes brutes récupérées:', demandes.value.length)
+          
+          // Log des statuts des demandes reçues
+          const statusCount = {}
+          demandes.value.forEach(d => {
+            statusCount[d.statut] = (statusCount[d.statut] || 0) + 1
+          })
+          console.log('📊 Répartition par statut:', statusCount)
+          
         } else {
           demandes.value = []
+          console.warn('⚠️ Aucune demande trouvée ou réponse invalide')
         }
       } catch (err) {
-        console.error('Erreur lors du chargement des demandes:', err)
+        console.error('❌ Erreur lors du chargement des demandes:', err)
         error.value = `Erreur ${err.response?.status || 'inconnue'}: ${err.response?.data?.message || err.message}`
         
         toast.add({
@@ -182,12 +223,18 @@ export default {
     const filteredDemandes = computed(() => {
       let filtered = demandes.value
 
-      // Filtre par statut
+      // 1️⃣ FILTRAGE PAR RÔLE (prioritaire)
+      // Ne montrer que les demandes avec les statuts autorisés pour ce rôle
+      filtered = filtered.filter(demande => 
+        allowedStatuses.value.includes(demande.statut)
+      )
+
+      // 2️⃣ FILTRAGE PAR STATUT (si un filtre spécifique est sélectionné)
       if (currentFilter.value !== "toutes") {
         filtered = filtered.filter((d) => d.statut === currentFilter.value)
       }
 
-      // Filtre par recherche
+      // 3️⃣ FILTRAGE PAR RECHERCHE
       if (searchTerm.value) {
         const term = searchTerm.value.toLowerCase()
         filtered = filtered.filter(
@@ -200,6 +247,20 @@ export default {
       }
 
       return filtered
+    })
+
+    // Debugging des demandes filtrées
+    const debugFilteredDemandes = computed(() => {
+      const count = filteredDemandes.value.length
+      console.log(`🔍 Demandes filtrées pour ${currentUserRole.value}:`, count)
+      if (count > 0) {
+        const statusCounts = {}
+        filteredDemandes.value.forEach(d => {
+          statusCounts[d.statut] = (statusCounts[d.statut] || 0) + 1
+        })
+        console.log('📈 Répartition des demandes filtrées:', statusCounts)
+      }
+      return count
     })
 
     const formatDate = (dateString) => {
@@ -252,10 +313,24 @@ export default {
     }
 
     const validerDemande = (demande) => {
+      // Vérifier si l'utilisateur a le droit de valider cette demande
+      if (!allowedStatuses.value.includes(demande.statut)) {
+        toast.add({
+          severity: 'warn',
+          summary: 'Accès refusé',
+          detail: 'Vous n\'avez pas les permissions pour valider cette demande.',
+          life: 4000
+        })
+        return
+      }
+      
       selectedDemande.value = demande
       // Détermine s'il s'agit du dernier validateur
       isLastValidator.value = demande.statut === 'en_attente_directeur_rh'
       showValidationModal.value = true
+      
+      console.log('🎯 Validation de la demande:', demande.id, 'Statut:', demande.statut)
+      console.log('🏁 Dernier validateur:', isLastValidator.value)
     }
 
     const handleValidationSubmit = async (validationData) => {
@@ -302,6 +377,9 @@ export default {
       filters,
       demandes,
       filteredDemandes,
+      debugFilteredDemandes, // Pour le debugging
+      currentUserRole,
+      allowedStatuses,
       formatDate,
       getStatusClass,
       getStatusLabel,

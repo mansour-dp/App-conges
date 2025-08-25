@@ -61,8 +61,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-01-01',
             'type' => 'national',
             'description' => 'Premier jour de l\'année',
-            'is_recurring' => true,
-            'is_active' => true
+            'is_recurring' => true
         ]);
 
         Holiday::create([
@@ -70,8 +69,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-04-04',
             'type' => 'national',
             'description' => 'Fête nationale du Sénégal',
-            'is_recurring' => true,
-            'is_active' => true
+            'is_recurring' => true
         ]);
 
         Holiday::create([
@@ -79,8 +77,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-05-01',
             'type' => 'national',
             'description' => 'Journée internationale des travailleurs',
-            'is_recurring' => true,
-            'is_active' => true
+            'is_recurring' => true
         ]);
 
         Holiday::create([
@@ -88,8 +85,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-04-21',
             'type' => 'religious',
             'description' => 'Fête chrétienne',
-            'is_recurring' => false,
-            'is_active' => true
+            'is_recurring' => false
         ]);
 
         Holiday::create([
@@ -97,8 +93,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-03-31',
             'type' => 'religious',
             'description' => 'Fête musulmane de la fin du Ramadan',
-            'is_recurring' => false,
-            'is_active' => true
+            'is_recurring' => false
         ]);
 
         Holiday::create([
@@ -106,8 +101,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-06-07',
             'type' => 'religious',
             'description' => 'Fête du sacrifice dans l\'Islam',
-            'is_recurring' => false,
-            'is_active' => true
+            'is_recurring' => false
         ]);
 
         Holiday::create([
@@ -115,8 +109,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-08-15',
             'type' => 'religious',
             'description' => 'Fête chrétienne de l\'Assomption',
-            'is_recurring' => true,
-            'is_active' => true
+            'is_recurring' => true
         ]);
 
         Holiday::create([
@@ -124,8 +117,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-11-01',
             'type' => 'religious',
             'description' => 'Fête de tous les saints',
-            'is_recurring' => true,
-            'is_active' => true
+            'is_recurring' => true
         ]);
 
         Holiday::create([
@@ -133,8 +125,7 @@ class LeavePlansAndHolidaysSeeder extends Seeder
             'date' => '2025-12-25',
             'type' => 'religious',
             'description' => 'Fête de la nativité',
-            'is_recurring' => true,
-            'is_active' => true
+            'is_recurring' => true
         ]);
     }
 }
