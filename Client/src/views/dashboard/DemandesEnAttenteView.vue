@@ -223,7 +223,7 @@ export default {
     const filteredDemandes = computed(() => {
       let filtered = demandes.value
 
-      // 1️⃣ FILTRAGE PAR RÔLE (prioritaire)
+      // FILTRAGE PAR RÔLE (prioritaire)
       // Ne montrer que les demandes avec les statuts autorisés pour ce rôle
       filtered = filtered.filter(demande => 
         allowedStatuses.value.includes(demande.statut)
@@ -336,10 +336,17 @@ export default {
     const handleValidationSubmit = async (validationData) => {
       try {
         loading.value = true
-        await demandesApi.validerAvecSuivant({
+        
+        // Mapper les données selon ce que le backend attend
+        const backendData = {
           demande_id: selectedDemande.value.id,
-          ...validationData
-        })
+          decision: validationData.decision === 'approve' ? 'approuve' : 'rejete',
+          commentaire: validationData.commentaire,
+          signature: validationData.signature,
+          next_validator_email: validationData.selectedUser?.email || null
+        }
+        
+        await demandesApi.validerAvecSuivant(backendData)
         
         toast.add({
           severity: 'success',
@@ -354,7 +361,7 @@ export default {
         toast.add({
           severity: 'error',
           summary: 'Erreur',
-          detail: 'Erreur lors de la validation de la demande',
+          detail: error.response?.data?.message || 'Erreur lors de la validation de la demande',
           life: 5000
         })
       } finally {

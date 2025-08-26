@@ -466,7 +466,7 @@ class DemandeCongeController extends Controller
             'demande_id' => 'required|exists:demandes_conges,id',
             'decision' => 'required|in:approuve,rejete',
             'commentaire' => 'nullable|string|max:1000',
-            'signature' => 'required|string',
+            'signature' => 'required_if:decision,approuve|nullable|string',
             'next_validator_email' => 'nullable|email|exists:users,email'
         ]);
 
@@ -488,8 +488,35 @@ class DemandeCongeController extends Controller
             ], 403);
         }
 
-        // Sauvegarder la signature du validateur
-        $signaturePath = $this->storeSignature($request->signature, $user->id);
+        // Validation stricte de la hiérarchie des rôles
+        if ($request->decision === 'approuve' && $request->next_validator_email) {
+            $nextValidator = \App\Models\User::with('role')->where('email', $request->next_validator_email)->first();
+            $currentUserRole = $user->role?->nom;
+            $nextValidatorRole = $nextValidator?->role?->nom;
+            
+            // Définir la hiérarchie stricte
+            $allowedNextRoles = [
+                'Superieur' => 'Directeur Unité',
+                'Directeur Unité' => 'Responsable RH',
+                'Responsable RH' => 'Directeur RH'
+            ];
+            
+            if (isset($allowedNextRoles[$currentUserRole])) {
+                $expectedNextRole = $allowedNextRoles[$currentUserRole];
+                if ($nextValidatorRole !== $expectedNextRole) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "En tant que {$currentUserRole}, vous ne pouvez envoyer qu'à un utilisateur avec le rôle '{$expectedNextRole}'. Le destinataire sélectionné a le rôle '{$nextValidatorRole}'.",
+                    ], 422);
+                }
+            }
+        }
+
+        // Sauvegarder la signature du validateur (seulement si fournie)
+        $signaturePath = null;
+        if ($request->signature && $request->decision === 'approuve') {
+            $signaturePath = $this->storeSignature($request->signature, $user->id);
+        }
 
         // Récupérer le workflow existant
         $workflow = json_decode($demande->validation_workflow, true) ?? [];
@@ -608,18 +635,51 @@ class DemandeCongeController extends Controller
             if ($exactMatch) {
                 $fullName = trim(($exactMatch->first_name ?? '') . ' ' . ($exactMatch->name ?? ''));
                 if (empty($fullName)) {
-                    $fullName = $exactMatch->email; // Utiliser l'email si pas de nom
+                    $fullName = $exactMatch->email;
                 }
                 
                 $userData = [
                     'id' => $exactMatch->id,
                     'email' => $exactMatch->email,
                     'name' => $fullName,
-                    'nom_complet' => $fullName,
-                    'role' => 'Test Role',
-                    'department' => 'Test Department'
+                    'first_name' => $exactMatch->first_name,
+                    'last_name' => $exactMatch->name,
+                    'roles' => $exactMatch->role ? [$exactMatch->role] : [],
+                    'department' => $exactMatch->department
                 ];
                 \Log::info('Utilisateur trouvé (exact):', ['user' => $userData]);
+                return response()->json([
+                    'success' => true,
+                    'data' => $userData,
+                ]);
+            }
+
+            // Si pas de correspondance exacte, chercher par LIKE (pour les recherches partielles)
+            $partialMatches = \App\Models\User::with(['role', 'department'])
+                ->where('id', '!=', $request->user()->id)
+                ->where('is_active', true)
+                ->where('email', 'LIKE', '%' . $request->email . '%')
+                ->limit(10)
+                ->get();
+
+            if ($partialMatches->isNotEmpty()) {
+                // Retourner le premier match pour compatibilité avec l'ancienne API
+                $user = $partialMatches->first();
+                $fullName = trim(($user->first_name ?? '') . ' ' . ($user->name ?? ''));
+                if (empty($fullName)) {
+                    $fullName = $user->email;
+                }
+                
+                $userData = [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => $fullName,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->name,
+                    'roles' => $user->role ? [$user->role] : [],
+                    'department' => $user->department
+                ];
+                \Log::info('Utilisateur trouvé (partiel):', ['user' => $userData]);
                 return response()->json([
                     'success' => true,
                     'data' => $userData,
@@ -689,15 +749,14 @@ class DemandeCongeController extends Controller
 
             $searchTerm = $request->name;
             
-            // Rechercher dans first_name, name, et leur combinaison
-            $users = \App\Models\User::where(function($query) use ($searchTerm) {
-                    $query->where('first_name', 'LIKE', '%' . $searchTerm . '%')
-                          ->orWhere('name', 'LIKE', '%' . $searchTerm . '%')
-                          ->orWhereRaw("CONCAT(first_name, ' ', name) LIKE ?", ['%' . $searchTerm . '%'])
-                          ->orWhereRaw("CONCAT(name, ' ', first_name) LIKE ?", ['%' . $searchTerm . '%']);
-                })
+            // Rechercher dans first_name et name (version simple sans CONCAT)
+            $users = \App\Models\User::with(['role', 'department'])
                 ->where('id', '!=', $request->user()->id)
-                ->with(['roles', 'department'])
+                ->where('is_active', true)
+                ->where(function($query) use ($searchTerm) {
+                    $query->where('first_name', 'LIKE', '%' . $searchTerm . '%')
+                          ->orWhere('name', 'LIKE', '%' . $searchTerm . '%');
+                })
                 ->limit(10)
                 ->get();
 
@@ -705,7 +764,7 @@ class DemandeCongeController extends Controller
                 $usersData = $users->map(function($user) {
                     $fullName = trim(($user->first_name ?? '') . ' ' . ($user->name ?? ''));
                     if (empty($fullName)) {
-                        $fullName = $user->email; // Utiliser l'email si pas de nom
+                        $fullName = $user->email;
                     }
                     
                     return [
@@ -714,7 +773,7 @@ class DemandeCongeController extends Controller
                         'name' => $fullName,
                         'first_name' => $user->first_name,
                         'last_name' => $user->name,
-                        'roles' => $user->roles,
+                        'roles' => $user->role ? [$user->role] : [], // Convertir en array pour compatibilité
                         'department' => $user->department
                     ];
                 });
@@ -735,6 +794,105 @@ class DemandeCongeController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Erreur dans searchUsersByName:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur serveur: ' . $e->getMessage(),
+                'data' => [],
+            ], 500);
+        }
+    }
+
+    public function searchUsersByRole(Request $request)
+    {
+        try {
+            \Log::info('🔍 Recherche utilisateurs par rôle:', [
+                'role' => $request->role, 
+                'query' => $request->query,
+                'user_id' => $request->user()->id
+            ]);
+            
+            $validator = Validator::make($request->all(), [
+                'role' => 'required|string',
+                'query' => 'required|string|min:2'
+            ]);
+
+            if ($validator->fails()) {
+                \Log::warning('🚫 Validation échoué:', $validator->errors()->toArray());
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            \Log::info('✅ Validation réussie, recherche en cours...');
+
+            // Version simplifiée : d'abord chercher tous les utilisateurs avec le bon rôle
+            $usersWithRole = \App\Models\User::with(['role', 'department'])
+                ->where('id', '!=', $request->user()->id)
+                ->where('is_active', true)
+                ->whereHas('role', function ($query) use ($request) {
+                    $query->where('nom', $request->role);
+                })
+                ->get();
+
+            \Log::info('👥 Utilisateurs avec le rôle trouvés:', ['count' => $usersWithRole->count()]);
+
+            // Ensuite filtrer par query en PHP pour éviter les problèmes SQL
+            $searchTerm = strtolower($request->query);
+            $users = $usersWithRole->filter(function ($user) use ($searchTerm) {
+                $email = strtolower($user->email ?? '');
+                $firstName = strtolower($user->first_name ?? '');
+                $lastName = strtolower($user->name ?? '');
+                $fullName = strtolower(trim($firstName . ' ' . $lastName));
+                
+                return str_contains($email, $searchTerm) ||
+                       str_contains($firstName, $searchTerm) ||
+                       str_contains($lastName, $searchTerm) ||
+                       str_contains($fullName, $searchTerm);
+            })->take(10);
+
+            \Log::info('📊 Résultats après filtrage:', ['count' => $users->count()]);
+
+            $userData = $users->map(function ($user) {
+                $fullName = trim(($user->first_name ?? '') . ' ' . ($user->name ?? ''));
+                if (empty($fullName)) {
+                    $fullName = $user->email;
+                }
+                
+                return [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => $fullName,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->name,
+                    'roles' => $user->role ? [$user->role] : [], // Convertir en array pour compatibilité
+                    'role' => $user->role, // Aussi garder le format direct
+                    'department' => $user->department,
+                    'is_active' => $user->is_active
+                ];
+            });
+
+            \Log::info('🎯 Données formatées:', [
+                'count' => $userData->count(),
+                'sample' => $userData->first()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $userData,
+                'message' => $userData->count() > 0 
+                    ? 'Utilisateurs trouvés' 
+                    : 'Aucun utilisateur trouvé avec ce rôle',
+                'count' => $userData->count()
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('❌ Erreur dans searchUsersByRole:', [
+                'error' => $e->getMessage(), 
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur serveur: ' . $e->getMessage(),

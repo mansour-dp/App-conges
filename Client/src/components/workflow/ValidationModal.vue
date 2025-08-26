@@ -152,6 +152,22 @@
                 Prochain Validateur
               </h3>
               
+              <!-- Message d'aide pour le rôle requis -->
+              <v-alert 
+                v-if="nextRequiredRole" 
+                type="info" 
+                variant="tonal" 
+                density="compact" 
+                class="mb-4"
+              >
+                <template #prepend>
+                  <v-icon>mdi-information</v-icon>
+                </template>
+                <div class="alert-content">
+                  <strong>Contrainte hiérarchique :</strong> {{ roleHelpMessage }}
+                </div>
+              </v-alert>
+              
               <v-autocomplete
                 v-model="selectedUser"
                 v-model:search="searchText"
@@ -282,6 +298,7 @@
 <script>
 import { usersApi } from '@/services/api'
 import SignaturePad from '@/components/ui/SignaturePad.vue'
+import { useUserStore } from '@/stores/users'
 
 export default {
   name: 'ValidationModal',
@@ -306,6 +323,11 @@ export default {
   },
   
   emits: ['update:modelValue', 'submit'],
+  
+  setup() {
+    const userStore = useUserStore()
+    return { userStore }
+  },
   
   data() {
     return {
@@ -376,6 +398,39 @@ export default {
         return 'Tapez au moins 2 caractères pour rechercher'
       }
       return 'Aucun utilisateur trouvé'
+    },
+
+    // Détermine le rôle suivant dans la hiérarchie selon le rôle actuel
+    nextRequiredRole() {
+      // Essayer plusieurs façons d'accéder au rôle de l'utilisateur
+      const user = this.userStore.user
+      let currentUserRole = null
+      
+      if (user?.role?.name) {
+        currentUserRole = user.role.name
+      } else if (user?.role?.nom) {
+        currentUserRole = user.role.nom
+      } else if (user?.roles && user.roles.length > 0) {
+        currentUserRole = user.roles[0].nom || user.roles[0].name
+      }
+      
+      const roleHierarchy = {
+        'Superieur': 'Directeur Unité',
+        'Directeur Unité': 'Responsable RH', 
+        'Responsable RH': 'Directeur RH'
+      }
+      
+      const nextRole = roleHierarchy[currentUserRole]
+      
+      return nextRole || null
+    },
+
+    // Message d'aide pour expliquer le rôle requis
+    roleHelpMessage() {
+      if (this.nextRequiredRole) {
+        return `Vous devez sélectionner un utilisateur avec le rôle "${this.nextRequiredRole}"`
+      }
+      return "Vous pouvez sélectionner n'importe quel utilisateur"
     }
   },
   
@@ -450,7 +505,7 @@ export default {
       this.searchLoading = true
       
       try {
-        // Recherche par email et par nom
+        // RETOUR A LA VERSION SIMPLE QUI FONCTIONNAIT
         const [emailResponse, nameResponse] = await Promise.allSettled([
           usersApi.searchByEmail(query),
           usersApi.searchByName ? usersApi.searchByName(query) : Promise.resolve({ data: { data: [] } })
@@ -470,8 +525,17 @@ export default {
           user && index === self.findIndex(u => u.id === user.id)
         )
         
+        // FILTRAGE HIÉRARCHIQUE SIMPLE : après avoir récupéré tous les users
+        let filteredUsers = uniqueUsers
+        if (this.nextRequiredRole) {
+          filteredUsers = uniqueUsers.filter(user => {
+            const userRole = user.roles && user.roles[0] ? user.roles[0].nom || user.roles[0].name : null
+            return userRole === this.nextRequiredRole
+          })
+        }
+        
         // Formater pour l'autocomplete
-        this.userSuggestions = uniqueUsers.map(user => ({
+        this.userSuggestions = filteredUsers.map(user => ({
           label: `${user.first_name || ''} ${user.name || user.last_name || ''} - ${user.email}`,
           value: user.id,
           name: `${user.first_name || ''} ${user.name || user.last_name || ''}`.trim(),
@@ -513,7 +577,6 @@ export default {
           this.emailError = 'Utilisateur non trouvé'
         }
       } catch (error) {
-        console.error('Erreur recherche utilisateur:', error)
         this.nextUserSuggestion = null
         this.emailError = 'Erreur lors de la recherche'
       }
@@ -539,19 +602,17 @@ export default {
       
       try {
         const validationData = {
-          demandeId: this.demande.id,
+          demande_id: this.demande.id,
           decision: this.decision,
           commentaire: this.commentaire,
           signature: this.signature,
-          emailProchainValidateur: this.decision === 'approve' && !this.isLastValidator ? this.emailProchainValidateur : null,
-          nextUserSuggestion: this.selectedUser
+          selectedUser: this.selectedUser  // Passer l'objet utilisateur complet
         }
         
         this.$emit('submit', validationData)
         this.dialog = false
         
       } catch (error) {
-        console.error('Erreur validation:', error)
         this.$toast?.add({
           severity: 'error',
           summary: 'Erreur',

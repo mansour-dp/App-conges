@@ -145,8 +145,4 @@ export const notificationsApi = {
   markAllAsRead: () => apiClient.patch('/notifications/read-all'),
 };
 
-export const testApi = {
-  ping: () => apiClient.get('/test'),
-};
-
 export default apiClient;

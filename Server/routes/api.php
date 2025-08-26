@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/demandes-conges/validate-with-next', [DemandeCongeController::class, 'validateWithNext']);
     Route::get('/users/search-by-email', [DemandeCongeController::class, 'searchUsersByEmail']);
     Route::get('/users/search-by-name', [DemandeCongeController::class, 'searchUsersByName']);
+    Route::get('/users/search-by-role', [DemandeCongeController::class, 'searchUsersByRole']);
 
     // Demandes de congés (ressource générale)
     Route::apiResource('demandes-conges', DemandeCongeController::class);
@@ -77,15 +78,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
-});
-
-// Route de test
-Route::get('/test', function () {
-    return response()->json([
-        'success' => true,
-        'message' => 'API Laravel fonctionne correctement',
-        'timestamp' => now(),
-    ]);
 });
 
 // Routes pour la documentation API
