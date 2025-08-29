@@ -1,175 +1,212 @@
 <template>
   <div class="demandes-en-attente-container">
-    <!-- Section de filtrage -->
-    <div class="filters-section">
-      <!-- Barre de recherche -->
+    <!-- En-tête simple -->
+    <div class="page-header">
+      <h1>
+        <i class="pi pi-inbox"></i>
+        Demandes en attente
+        <span class="count-badge">{{ finalFilteredDemandes.length }}</span>
+      </h1>
+    </div>
+
+    <!-- Filtres simples -->
+    <div class="filters-bar">
       <div class="search-box">
-        <i class="fas fa-search"></i>
-        <input
+        <i class="pi pi-search"></i>
+        <InputText
           v-model="searchTerm"
-          type="text"
-          placeholder="Rechercher par nom, matricule ou département..."
+          placeholder="Rechercher par nom ou matricule..."
+          class="search-input"
         />
       </div>
-
-      <!-- Filtres par type de demande -->
-      <div class="type-filter-buttons">
-        <button
-          v-for="typeFilter in typeFilters"
-          :key="typeFilter.value"
-          @click="setTypeFilter(typeFilter.value)"
-          :class="['filter-btn', { active: currentTypeFilter === typeFilter.value }]"
-        >
-          <i :class="typeFilter.icon"></i>
-          {{ typeFilter.label }}
-        </button>
-      </div>
-
-      <!-- Filtres par statut -->
-      <div class="status-filter-buttons">
-        <button
-          v-for="filter in filters"
-          :key="filter.value"
-          @click="setFilter(filter.value)"
-          :class="['filter-btn', { active: currentFilter === filter.value }]"
-        >
-          {{ filter.label }}
-        </button>
+      
+      <div class="filter-buttons">
+        <Button
+          @click="setTypeFilter('tous')"
+          label="Tous"
+          :class="{ 'filter-active': currentTypeFilter === 'tous' }"
+          class="filter-btn filter-tous"
+          size="small"
+          icon="pi pi-list"
+        />
+        <Button
+          @click="setTypeFilter('conges')"
+          label="Congés"
+          :class="{ 'filter-active': currentTypeFilter === 'conges' }"
+          class="filter-btn filter-conges"
+          size="small"
+          icon="pi pi-calendar"
+        />
+        <Button
+          @click="setTypeFilter('absences')"
+          label="Absences"
+          :class="{ 'filter-active': currentTypeFilter === 'absences' }"
+          class="filter-btn filter-absences"
+          size="small"
+          icon="pi pi-times-circle"
+        />
+        <Button
+          @click="setTypeFilter('reports')"
+          label="Reports"
+          :class="{ 'filter-active': currentTypeFilter === 'reports' }"
+          class="filter-btn filter-reports"
+          size="small"
+          icon="pi pi-refresh"
+        />
       </div>
     </div>
 
-    <!-- État de chargement -->
-    <div v-if="loading" class="loading-container">
-      <div class="spinner"></div>
-      <p>Chargement des demandes...</p>
+    <!-- États -->
+    <div v-if="loading" class="loading-state">
+      <!-- Skeleton Cards -->
+      <div class="demandes-grid">
+        <div v-for="i in 6" :key="i" class="skeleton-card">
+          <div class="skeleton-header">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-text">
+              <div class="skeleton-line skeleton-title"></div>
+              <div class="skeleton-line skeleton-subtitle"></div>
+            </div>
+          </div>
+          <div class="skeleton-body">
+            <div class="skeleton-line skeleton-date"></div>
+            <div class="skeleton-line skeleton-reason"></div>
+          </div>
+          <div class="skeleton-footer">
+            <div class="skeleton-badge"></div>
+            <div class="skeleton-button"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Message d'erreur -->
-    <div v-else-if="error" class="error-container">
-      <i class="fas fa-exclamation-triangle"></i>
+    <div v-else-if="error" class="error-state">
+      <i class="pi pi-exclamation-triangle"></i>
       <p>{{ error }}</p>
-      <button @click="chargerDemandes" class="retry-btn">
-        <i class="fas fa-redo"></i>
-        Réessayer
-      </button>
+      <Button @click="chargerDemandes" label="Réessayer" icon="pi pi-refresh" />
     </div>
 
-    <!-- Grille unifiée des cartes de demandes -->
-    <div v-else class="demandes-container">
-      <!-- Message si aucune demande -->
-      <div v-if="finalFilteredDemandes.length === 0" class="empty-state">
-        <i class="fas fa-inbox"></i>
-        <h3>Aucune demande en attente</h3>
-        <p>Il n'y a actuellement aucune demande à traiter.</p>
-      </div>
+    <div v-else-if="finalFilteredDemandes.length === 0" class="empty-state">
+      <i class="pi pi-inbox"></i>
+      <h3>Aucune demande</h3>
+      <p>Il n'y a aucune demande en attente pour le moment.</p>
+    </div>
 
-      <!-- Grille des cartes côte à côte -->
-      <div v-else class="demandes-grid-unified">
-        <div
-          v-for="demande in finalFilteredDemandes"
-          :key="`${demande.type_source}-${demande.id}`"
-          :class="['demande-card', demande.type_source]"
-        >
-          <!-- En-tête de la carte avec type et statut -->
-          <div class="demande-header">
-            <div class="demande-type-info">
-              <i :class="demande.type_icon" :style="{ color: demande.type_color }"></i>
-              <span class="demande-type">{{ demande.type_label }}</span>
-            </div>
-            <span :class="['demande-status', getStatusClass(demande.statut)]">
-              {{ getStatusText(demande.statut) }}
-            </span>
+    <!-- Grille simple des demandes -->
+    <div v-else class="demandes-grid">
+      <div
+        v-for="demande in finalFilteredDemandes"
+        :key="`${demande.type_source}-${demande.id}`"
+        class="demande-card"
+        @click="openValidationModal(demande)"
+      >
+        <!-- En-tête de carte -->
+        <div class="card-header">
+          <div class="type-badge" :class="demande.type_source">
+            <i :class="demande.type_icon"></i>
+            {{ demande.type_label }}
           </div>
-
-          <!-- Informations employé -->
-          <div class="demande-employee">
-            <div class="employee-info">
-              <h3>{{ getUserFullName(demande.user) }}</h3>
-              <span class="employee-details">
-                <i class="fas fa-id-badge"></i>
-                {{ demande.user?.matricule }}
-                <span class="separator">•</span>
-                <i class="fas fa-building"></i>
-                {{ demande.user?.department?.nom || 'Département non défini' }}
-              </span>
-            </div>
+          <div class="status-badge" :class="getStatusClass(demande.statut)">
+            {{ getStatusText(demande.statut) }}
           </div>
+        </div>
 
-          <!-- Détails de la demande -->
-          <div class="demande-details">
-            <!-- Détails spécifiques au type de congé -->
-            <div v-if="demande.type_source === 'conges'" class="details-grid">
-              <div class="detail-item">
-                <i class="fas fa-tag"></i>
-                <span>{{ demande.type_conge?.nom || 'Type non spécifié' }}</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-calendar"></i>
-                <span>{{ formatDate(demande.date_debut) }} - {{ formatDate(demande.date_fin) }}</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-clock"></i>
-                <span>{{ demande.duree_jours }} jour(s)</span>
-              </div>
+        <!-- Informations employé -->
+        <div class="employee-info">
+          <div class="avatar">
+            {{ getInitials(demande.user?.nom || demande.user?.name, demande.user?.prenom || demande.user?.first_name) }}
+          </div>
+          <div class="employee-details">
+            <h3>{{ getUserFullName(demande.user) }}</h3>
+            <p class="matricule">{{ demande.user?.matricule }}</p>
+            <p class="department">{{ demande.user?.department?.nom || 'Département non défini' }}</p>
+          </div>
+        </div>
+
+        <!-- Détails de la demande -->
+        <div class="demande-details">
+          <!-- Congés -->
+          <div v-if="demande.type_source === 'conges'" class="details-grid">
+            <div class="detail-item">
+              <span class="label">Type:</span>
+              <span class="value">{{ demande.type_conge?.nom || 'Non spécifié' }}</span>
             </div>
-
-            <!-- Détails spécifiques au type d'absence -->
-            <div v-else-if="demande.type_source === 'absences'" class="details-grid">
-              <div class="detail-item">
-                <i class="fas fa-tag"></i>
-                <span>{{ demande.type_absence?.nom || 'Type non spécifié' }}</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-calendar"></i>
-                <span>{{ formatDate(demande.date_debut) }} - {{ formatDate(demande.date_fin) }}</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-clock"></i>
-                <span>{{ demande.duree_jours }} jour(s)</span>
-              </div>
+            <div class="detail-item">
+              <span class="label">Du:</span>
+              <span class="value">{{ formatDate(demande.date_debut) }}</span>
             </div>
-
-            <!-- Détails spécifiques au report -->
-            <div v-else-if="demande.type_source === 'reports'" class="details-grid">
-              <div class="detail-item">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Report de congé</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-calendar-check"></i>
-                <span>Nouvelles dates: {{ formatDate(demande.nouvelle_date_debut) }} - {{ formatDate(demande.nouvelle_date_fin) }}</span>
-              </div>
-              <div class="detail-item" v-if="demande.conge_original">
-                <i class="fas fa-history"></i>
-                <span>Congé original: {{ formatDate(demande.conge_original.date_debut) }} - {{ formatDate(demande.conge_original.date_fin) }}</span>
-              </div>
+            <div class="detail-item">
+              <span class="label">Au:</span>
+              <span class="value">{{ formatDate(demande.date_fin) }}</span>
             </div>
-
-            <!-- Motif -->
-            <div v-if="demande.motif" class="motif-section">
-              <h4><i class="fas fa-comment-alt"></i> Motif</h4>
-              <p>{{ demande.motif }}</p>
-            </div>
-
-            <!-- Date de demande -->
-            <div class="date-demande">
-              <small>
-                <i class="fas fa-calendar-plus"></i>
-                Demandé le {{ formatDate(demande.created_at) }}
-              </small>
+            <div class="detail-item">
+              <span class="label">Durée:</span>
+              <span class="value">{{ demande.duree_jours }} jour(s)</span>
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="demande-actions">
-            <button
-              @click="openValidationModal(demande)"
-              class="validate-btn"
-            >
-              <i class="fas fa-check-circle"></i>
-              Traiter la demande
-            </button>
+          <!-- Absences -->
+          <div v-else-if="demande.type_source === 'absences'" class="details-grid">
+            <div class="detail-item">
+              <span class="label">Type:</span>
+              <span class="value">{{ demande.type_absence?.nom || 'Non spécifié' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Du:</span>
+              <span class="value">{{ formatDate(demande.date_debut) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Au:</span>
+              <span class="value">{{ formatDate(demande.date_fin) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Durée:</span>
+              <span class="value">{{ demande.duree_jours }} jour(s)</span>
+            </div>
           </div>
+
+          <!-- Reports -->
+          <div v-else-if="demande.type_source === 'reports'" class="details-grid">
+            <div class="detail-item">
+              <span class="label">Type:</span>
+              <span class="value">Report de congé</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Du:</span>
+              <span class="value">{{ formatDate(demande.nouvelle_date_debut) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Au:</span>
+              <span class="value">{{ formatDate(demande.nouvelle_date_fin) }}</span>
+            </div>
+            <div v-if="demande.conge_original" class="detail-item">
+              <span class="label">Original:</span>
+              <span class="value">{{ formatDate(demande.conge_original.date_debut) }}</span>
+            </div>
+          </div>
+
+          <!-- Motif si présent -->
+          <div v-if="demande.motif" class="motif">
+            <strong>Motif:</strong> {{ demande.motif }}
+          </div>
+
+          <!-- Date de soumission -->
+          <div class="submission-date">
+            <i class="pi pi-calendar"></i>
+            Soumis le {{ formatDate(demande.created_at) }}
+          </div>
+        </div>
+
+        <!-- Bouton d'action -->
+        <div class="card-footer">
+          <Button
+            @click.stop="openValidationModal(demande)"
+            label="Traiter"
+            icon="pi pi-check-circle"
+            severity="success"
+            size="small"
+            fluid
+          />
         </div>
       </div>
     </div>
@@ -191,10 +228,18 @@ import { useNotificationsStore } from '@/stores/notifications'
 import ValidationModal from '@/components/workflow/ValidationModal.vue'
 import { demandesApi, demandesAbsenceApi, demandesReportApi } from '@/services/api'
 
+// PrimeVue imports
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import ProgressSpinner from 'primevue/progressspinner'
+
 export default {
   name: "DemandesEnAttenteView",
   components: {
-    ValidationModal
+    ValidationModal,
+    Button,
+    InputText,
+    ProgressSpinner
   },
   setup() {
     const toast = useToast()
@@ -226,29 +271,6 @@ export default {
     // Statuts autorisés pour ce rôle
     const allowedStatuses = computed(() => {
       return ROLE_STATUS_MAP[currentUserRole.value] || []
-    })
-
-    // Filtres par type de demande
-    const typeFilters = computed(() => [
-      { label: "Tous", value: "tous", icon: "fas fa-list" },
-      { label: "Congés", value: "conges", icon: "fas fa-calendar-alt" },
-      { label: "Absences", value: "absences", icon: "fas fa-user-times" },
-      { label: "Reports", value: "reports", icon: "fas fa-exchange-alt" }
-    ])
-
-    // Filtres dynamiques basés sur le rôle
-    const filters = computed(() => {
-      const baseFilters = [{ label: "Toutes", value: "toutes" }]
-      const allowedStatusList = allowedStatuses.value
-      
-      const statusFilters = [
-        { label: "En attente supérieur", value: "en_attente_superieur" },
-        { label: "En attente directeur", value: "en_attente_directeur_unite" },
-        { label: "En attente RH", value: "en_attente_responsable_rh" },
-        { label: "En attente DRH", value: "en_attente_directeur_rh" },
-      ].filter(filter => allowedStatusList.includes(filter.value))
-
-      return [...baseFilters, ...statusFilters]
     })
 
     const demandes = ref([])
@@ -358,21 +380,25 @@ export default {
         filtered = filtered.filter((d) => d.type_source === currentTypeFilter.value)
       }
 
-      // 3️⃣ FILTRAGE PAR STATUT (si un filtre spécifique est sélectionné)
-      if (currentFilter.value !== "toutes") {
-        filtered = filtered.filter((d) => d.statut === currentFilter.value)
-      }
-
-      // 4️⃣ FILTRAGE PAR RECHERCHE
+      // 3️⃣ FILTRAGE PAR RECHERCHE (optimisé pour nom et matricule)
       if (searchTerm.value) {
-        const term = searchTerm.value.toLowerCase()
-        filtered = filtered.filter(
-          (d) =>
-            d.user?.name?.toLowerCase().includes(term) ||
-            d.user?.first_name?.toLowerCase().includes(term) ||
-            d.user?.matricule?.toLowerCase().includes(term) ||
-            d.user?.department?.nom?.toLowerCase().includes(term)
-        )
+        const term = searchTerm.value.toLowerCase().trim()
+        filtered = filtered.filter((d) => {
+          // Recherche par nom complet
+          const nomComplet = getUserFullName(d.user).toLowerCase()
+          
+          // Recherche par matricule
+          const matricule = (d.user?.matricule || "").toLowerCase()
+          
+          // Recherche par nom séparé
+          const nom = (d.user?.nom || d.user?.name || "").toLowerCase()
+          const prenom = (d.user?.prenom || d.user?.first_name || "").toLowerCase()
+          
+          return nomComplet.includes(term) ||
+                 matricule.includes(term) ||
+                 nom.includes(term) ||
+                 prenom.includes(term)
+        })
       }
 
       return filtered
@@ -425,7 +451,49 @@ export default {
     }
 
     const getUserFullName = (user) => {
-      return user ? `${user.first_name || ""} ${user.name || ""}` : "Utilisateur inconnu"
+      if (!user) return "Utilisateur inconnu"
+      const nom = user.nom || user.name || ""
+      const prenom = user.prenom || user.first_name || ""
+      return `${prenom} ${nom}`.trim() || "Utilisateur inconnu"
+    }
+
+    // Nouvelles méthodes utilitaires pour PrimeVue
+    const getInitials = (nom, prenom) => {
+      if (!nom && !prenom) return '?'
+      const firstInitial = (prenom || nom || "").charAt(0).toUpperCase()
+      const lastInitial = (nom || prenom || "").charAt(0).toUpperCase()
+      return firstInitial !== lastInitial ? `${firstInitial}${lastInitial}` : firstInitial || '?'
+    }
+
+    const getTypeSeverity = (type) => {
+      switch (type) {
+        case 'conges':
+          return 'info'
+        case 'absences':
+          return 'danger'
+        case 'reports':
+          return 'warning'
+        default:
+          return 'secondary'
+      }
+    }
+
+    const getStatusSeverity = (status) => {
+      switch (status) {
+        case 'en_attente_superieur':
+        case 'en_attente_directeur_unite':
+        case 'en_attente_responsable_rh':
+        case 'en_attente_directeur_rh':
+          return 'warning'
+        case 'approuve':
+        case 'valide':
+          return 'success'
+        case 'rejete':
+        case 'refuse':
+          return 'danger'
+        default:
+          return 'secondary'
+      }
     }
 
     const openValidationModal = (demande) => {
@@ -581,8 +649,6 @@ export default {
       searchTerm,
       currentFilter,
       currentTypeFilter,
-      typeFilters,
-      filters,
       showValidationModal,
       selectedDemande,
       loading,
@@ -592,6 +658,9 @@ export default {
       getStatusClass,
       getStatusText,
       getUserFullName,
+      getInitials,
+      getTypeSeverity,
+      getStatusSeverity,
       openValidationModal,
       closeValidationModal,
       handleValidationResult,
@@ -604,38 +673,38 @@ export default {
 </script>
 
 <style scoped>
+/* Container principal */
 .demandes-en-attente-container {
   padding: 2rem;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   background-color: #f8fafc;
   min-height: 100vh;
 }
 
-/* En-tête */
+/* En-tête simple */
 .page-header {
-  text-align: center;
   margin-bottom: 2rem;
+  text-align: center;
 }
 
 .page-header h1 {
-  color: #1e293b;
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 1rem;
+  color: #1e293b;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
 }
 
-.page-header h1 i {
-  color: #3b82f6;
-  font-size: 1.75rem;
+.page-header i {
+  color: #008a9b; /* Primary SENELEC */
 }
 
-.demandes-count {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+.count-badge {
+  background: #008a9b; /* Primary SENELEC */
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 1rem;
@@ -643,17 +712,12 @@ export default {
   font-weight: 600;
 }
 
-.page-description {
-  color: #64748b;
-  font-size: 1.1rem;
-  margin: 0;
-}
-
-/* Section de filtrage */
-.filters-section {
+/* Barre de filtres simple */
+.filters-bar {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
   margin-bottom: 2rem;
   background: white;
   padding: 1.5rem;
@@ -661,11 +725,10 @@ export default {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Barre de recherche */
 .search-box {
   position: relative;
+  flex: 1;
   max-width: 400px;
-  margin: 0 auto;
 }
 
 .search-box i {
@@ -676,172 +739,88 @@ export default {
   color: #9ca3af;
 }
 
-.search-box input {
+.search-input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
+  padding-left: 2.5rem !important;
 }
 
-.search-box input:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-/* Boutons de filtre par type */
-.type-filter-buttons,
-.status-filter-buttons {
+.filter-buttons {
   display: flex;
-  justify-content: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.filter-btn {
-  padding: 0.5rem 1rem;
-  border: 2px solid #e5e7eb;
-  background: white;
-  color: #374151;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-btn:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-}
-
-.filter-btn.active {
-  background: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
-}
-
-.filter-btn i {
-  font-size: 0.875rem;
-}
-
-/* États de chargement et d'erreur */
-.loading-container,
-.error-container {
+/* États */
+.loading-state,
+.error-state,
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 3rem;
-  text-align: center;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-container i {
-  font-size: 3rem;
-  color: #ef4444;
-  margin-bottom: 1rem;
-}
-
-.retry-btn {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background-color 0.2s;
-}
-
-.retry-btn:hover {
-  background: #2563eb;
-}
-
-/* État vide */
-.empty-state {
-  text-align: center;
+  justify-content: center;
   padding: 4rem 2rem;
+  text-align: center;
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.loading-state i,
+.error-state i,
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.loading-state i {
+  color: #008a9b; /* Primary SENELEC */
+}
+
+.error-state i {
+  color: #b10064; /* Rouge SENELEC pour erreurs */
 }
 
 .empty-state i {
-  font-size: 4rem;
   color: #9ca3af;
-  margin-bottom: 1rem;
 }
 
-.empty-state h3 {
-  color: #374151;
-  margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-  color: #6b7280;
-  margin: 0;
-}
-
-/* Grille unifiée des demandes */
-.demandes-grid-unified {
+/* Grille 3 colonnes */
+.demandes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 
-/* Cartes de demandes */
+/* Cartes simples */
 .demande-card {
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-left: 4px solid #e5e7eb;
 }
 
 .demande-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .demande-card.conges {
-  border-left-color: #3b82f6;
+  border-left-color: #008a9b; /* Primary SENELEC pour congés */
 }
 
 .demande-card.absences {
-  border-left-color: #ef4444;
+  border-left-color: #b10064; /* Rouge SENELEC pour absences */
 }
 
 .demande-card.reports {
-  border-left-color: #f59e0b;
+  border-left-color: #f59e0b; /* Orange pour reports */
 }
 
 /* En-tête de carte */
-.demande-header {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -850,72 +829,97 @@ export default {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.demande-type-info {
+.type-badge {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.demande-type-info i {
-  font-size: 1.25rem;
-}
-
-.demande-type {
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: white;
 }
 
-.demande-status {
+.type-badge.conges {
+  background: #008a9b; /* Primary SENELEC pour congés */
+}
+
+.type-badge.absences {
+  background: #b10064; /* Rouge SENELEC pour absences */
+}
+
+.type-badge.reports {
+  background: #f59e0b; /* Orange pour reports */
+}
+
+.status-badge {
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-.demande-status.pending {
-  background: #fef3c7;
-  color: #92400e;
+.status-badge.pending {
+  background: rgba(255, 193, 7, 0.1); /* Jaune pour en attente */
+  color: #e68900;
+  border: 1px solid rgba(255, 193, 7, 0.3);
 }
 
-.demande-status.approved {
-  background: #d1fae5;
-  color: #065f46;
+.status-badge.approved {
+  background: rgba(0, 138, 155, 0.1); /* Primary SENELEC pour approuvé */
+  color: #008a9b;
+  border: 1px solid rgba(0, 138, 155, 0.3);
 }
 
-.demande-status.rejected {
-  background: #fee2e2;
-  color: #991b1b;
+.status-badge.rejected {
+  background: rgba(177, 0, 100, 0.1); /* Rouge SENELEC pour rejeté */
+  color: #b10064;
+  border: 1px solid rgba(177, 0, 100, 0.3);
 }
 
 /* Informations employé */
-.demande-employee {
+.employee-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.employee-info h3 {
-  color: #1e293b;
-  margin: 0 0 0.5rem 0;
-  font-size: 1.125rem;
+.avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #008a9b, #261555); /* Dégradé SENELEC */
+  color: white;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .employee-details {
-  color: #64748b;
+  flex: 1;
+}
+
+.employee-details h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #261555; /* Secondary SENELEC */
+}
+
+.employee-details p {
+  margin: 0;
   font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  color: #64748b;
 }
 
-.employee-details i {
-  color: #9ca3af;
-}
-
-.separator {
-  color: #d1d5db;
+.matricule {
+  font-weight: 500;
 }
 
 /* Détails de la demande */
@@ -925,462 +929,247 @@ export default {
 
 .details-grid {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
 .detail-item {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #374151;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item .label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-item .value {
   font-size: 0.875rem;
+  font-weight: 500;
+  color: #261555; /* Secondary SENELEC */
 }
 
-.detail-item i {
-  color: #6b7280;
-  width: 1rem;
-  text-align: center;
-}
-
-.motif-section {
+.motif {
   margin: 1rem 0;
   padding: 0.75rem;
   background: #f8fafc;
   border-radius: 6px;
+  font-size: 0.875rem;
+  color: #374151;
+  border-left: 3px solid #e5e7eb;
 }
 
-.motif-section h4 {
-  margin: 0 0 0.5rem 0;
-  color: #374151;
-  font-size: 0.875rem;
-  font-weight: 600;
+.submission-date {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.motif-section p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.date-demande {
+  font-size: 0.75rem;
+  color: #9ca3af;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #e5e7eb;
 }
 
-.date-demande small {
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Actions */
-.demande-actions {
+/* Pied de carte */
+.card-footer {
   padding: 1rem 1.5rem;
   background: #f8fafc;
   border-top: 1px solid #e5e7eb;
 }
 
-.validate-btn {
-  width: 100%;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+/* Responsive */
+@media (max-width: 1200px) {
+  .demandes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Styles pour les boutons de filtrage */
+.filter-buttons {
+  gap: 0.75rem;
+}
+
+.filter-btn {
+  position: relative;
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+}
+
+.filter-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Bouton Tous */
+.filter-tous {
+  border-color: #d1d5db;
+}
+
+.filter-tous.filter-active {
+  background: linear-gradient(135deg, #008a9b, #0da4ba);
   color: white;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+  border-color: #008a9b;
+  box-shadow: 0 4px 12px rgba(0, 138, 155, 0.3);
+}
+
+/* Bouton Congés - Couleur identique au badge congés (#008a9b) */
+.filter-conges {
+  border-color: #d1d5db;
+}
+
+.filter-conges.filter-active {
+  background: linear-gradient(135deg, #008a9b, #0da4ba);
+  color: white;
+  border-color: #008a9b;
+  box-shadow: 0 4px 12px rgba(0, 138, 155, 0.3);
+}
+
+/* Bouton Absences - Couleur identique au badge absences (#b10064) */
+.filter-absences {
+  border-color: #d1d5db;
+}
+
+.filter-absences.filter-active {
+  background: linear-gradient(135deg, #b10064, #d1007a);
+  color: white;
+  border-color: #b10064;
+  box-shadow: 0 4px 12px rgba(177, 0, 100, 0.3);
+}
+
+/* Bouton Reports - Couleur identique au badge reports (#f59e0b) */
+.filter-reports {
+  border-color: #d1d5db;
+}
+
+.filter-reports.filter-active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border-color: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Skeleton Loading */
+.skeleton-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.skeleton-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
-.validate-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-1px);
+.skeleton-line {
+  height: 0.75rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
-/* Responsive */
+.skeleton-title {
+  width: 60%;
+  height: 1rem;
+}
+
+.skeleton-subtitle {
+  width: 40%;
+}
+
+.skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.skeleton-date {
+  width: 50%;
+}
+
+.skeleton-reason {
+  width: 80%;
+}
+
+.skeleton-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.skeleton-badge {
+  width: 80px;
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-button {
+  width: 100px;
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 @media (max-width: 768px) {
   .demandes-en-attente-container {
     padding: 1rem;
   }
 
-  .demandes-grid-unified {
-    grid-template-columns: 1fr;
-  }
-
-  .filters-section {
-    padding: 1rem;
-  }
-
-  .search-box {
-    max-width: none;
-  }
-
-  .type-filter-buttons,
-  .status-filter-buttons {
-    justify-content: center;
-  }
-
-  .demande-header {
+  .filters-bar {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .employee-details {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-</style>
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.search-box {
-  position: relative;
-  max-width: 300px;
-  flex: 1;
-}
-
-.search-box i {
-  position: absolute;
-  left: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 12px 12px 12px 45px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: #008a9b;
-  box-shadow: 0 0 0 3px rgba(0, 138, 155, 0.1);
-}
-
-.filter-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.filter-btn {
-  padding: 8px 16px;
-  border: 1px solid #e2e8f0;
-  background: white;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.filter-btn:hover {
-  border-color: #008a9b;
-  color: #008a9b;
-}
-
-.filter-btn.active {
-  background: linear-gradient(135deg, #008a9b, #00b4d8);
-  color: white;
-  border-color: transparent;
-}
-
-.demandes-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.demande-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  border-left: 4px solid #e2e8f0;
-}
-
-.demande-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.demande-card.pending {
-  border-left-color: #b10064;
-}
-
-.demande-card.approved {
-  border-left-color: #008a9b;
-}
-
-.demande-card.rejected {
-  border-left-color: #261555;
-}
-
-.demande-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 15px;
-}
-
-.demande-info h3 {
-  margin: 0 0 5px 0;
-  color: #261555;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.demande-info .matricule {
-  margin: 0 0 3px 0;
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.demande-info .unite {
-  margin: 0;
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-.demande-status {
-  text-align: right;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 5px;
-}
-
-.status-badge.pending {
-  background: rgba(177, 0, 100, 0.1);
-  color: #b10064;
-}
-
-.status-badge.approved {
-  background: rgba(0, 138, 155, 0.1);
-  color: #008a9b;
-}
-
-.status-badge.rejected {
-  background: rgba(38, 21, 85, 0.1);
-  color: #261555;
-}
-
-.date-demande {
-  display: block;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.demande-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 10px;
-  margin-bottom: 15px;
-  padding: 15px;
-  background: #f8fafc;
-  border-radius: 10px;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.detail-label {
-  font-weight: 500;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.detail-value {
-  font-weight: 600;
-  color: #261555;
-  font-size: 14px;
-}
-
-.demande-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-}
-
-.btn-validate {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  gap: 5px;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  background: linear-gradient(135deg, #008a9b, #00b4d8);
-  color: white;
-}
-
-.btn-validate:hover {
-  background: linear-gradient(135deg, #007c8b, #00a2c7);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 138, 155, 0.3);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #64748b;
-}
-
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 15px;
-  opacity: 0.5;
-}
-
-.empty-state h3 {
-  margin: 0 0 10px 0;
-  color: #64748b;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 16px;
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #64748b;
-}
-
-.loading-state i {
-  font-size: 48px;
-  margin-bottom: 15px;
-  color: #008a9b;
-}
-
-.error-state i {
-  font-size: 48px;
-  margin-bottom: 15px;
-  color: #dc3545;
-}
-
-.error-state h3 {
-  margin: 0 0 10px 0;
-  color: #dc3545;
-}
-
-.retry-btn {
-  background: #008a9b;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 1rem;
-  transition: background-color 0.3s ease;
-  font-size: 14px;
-}
-
-.retry-btn:hover {
-  background: #007088;
-}
-
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: #261555;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #64748b;
-  padding: 5px;
-}
-
-.close-btn:hover {
-  color: #475569;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-@media (max-width: 768px) {
-  .filters-section {
-    flex-direction: column;
-    align-items: stretch;
+    gap: 1rem;
   }
 
   .search-box {
@@ -1391,5 +1180,23 @@ export default {
     justify-content: center;
   }
 
+  .demandes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .employee-info {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+</style>
