@@ -244,9 +244,9 @@
           type="button"
           class="btn-envoyer"
           @click="soumettreDemandeAvecWorkflow"
-          :disabled="demandeEnvoyee || !formData.signatureEmploye"
+          :disabled="demandeEnvoyee || !formData.signatureEmploye || isSubmitting"
         >
-          Soumettre
+          {{ isSubmitting ? 'Envoi en cours...' : 'Soumettre' }}
         </button>
       </div>
       <div v-if="confirmation" class="confirmation-message">
@@ -317,6 +317,7 @@ export default {
       },
       demandeEnvoyee: false,
       confirmation: false,
+      isSubmitting: false, // Protection contre les soumissions multiples
     };
   },
   computed: {
@@ -360,9 +361,18 @@ export default {
       window.print();
     },
     async soumettreDemandeAvecWorkflow() {
+      // Protection contre les soumissions multiples
+      if (this.isSubmitting) {
+        console.log('⚠️ Soumission déjà en cours, ignoré...')
+        return
+      }
+
+      this.isSubmitting = true
+      
       try {
         // Validation des champs obligatoires
         if (!this.validateForm()) {
+          this.isSubmitting = false
           return;
         }
 
@@ -388,6 +398,8 @@ export default {
           detail: 'Erreur lors de la création de la demande: ' + (error.response?.data?.message || error.message),
           life: 5000
         });
+      } finally {
+        this.isSubmitting = false
       }
     },
 
@@ -521,6 +533,8 @@ export default {
           detail: 'Erreur lors de l\'envoi au supérieur: ' + error.message,
           life: 5000
         });
+      } finally {
+        this.isSubmitting = false
       }
     },
     ouvrirPadSignature(type) {

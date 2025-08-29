@@ -215,9 +215,9 @@
           type="button"
           class="btn-envoyer"
           @click="envoyerDemande"
-          :disabled="demandeEnvoyee || !formData.signatureEmploye"
+          :disabled="demandeEnvoyee || !formData.signatureEmploye || isSubmitting"
         >
-          Soumettre
+          {{ isSubmitting ? 'Envoi en cours...' : 'Soumettre' }}
         </button>
       </div>
       <div v-if="confirmation" class="confirmation-message">
