@@ -550,6 +550,7 @@ export default {
         commentaire: this.formData.motif,
         signature_interresse: 'signature_placeholder',
         form_data: {
+          // Informations personnelles
           prenom: this.formData.prenom,
           nom: this.formData.nom,
           matricule: this.formData.matricule,
@@ -557,6 +558,15 @@ export default {
           poste: this.formData.poste,
           adresse: this.formData.adresse,
           telephone: this.formData.telephone,
+          // Informations d'absence
+          matin: this.formData.matin,
+          apresMidi: this.formData.apresMidi,
+          journee: this.formData.journee,
+          periodeDebut: this.formData.periodeDebut,
+          periodeFin: this.formData.periodeFin,
+          nbJours: this.formData.nbJours,
+          motif: this.formData.motif,
+          dateDemande: this.formData.dateDemande
         }
       }
     },

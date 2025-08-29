@@ -118,7 +118,7 @@ class DemandeAbsenceController extends Controller
                 'motif' => $request->motif,
                 'commentaire' => $request->commentaire,
                 'signature_interresse' => $request->signature_interresse,
-                'form_data' => $request->form_data,
+                'form_data' => $request->form_data ? json_encode($request->form_data) : null,
                 'statut' => 'en_attente',
                 'workflow_step' => 0,
                 'date_soumission' => now()
@@ -444,6 +444,13 @@ class DemandeAbsenceController extends Controller
                         'created_at' => $demande->created_at,
                         'current_validator' => $demande->current_validator,
                         'workflow_step' => $demande->workflow_step ?? 0,
+                        'form_data' => $demande->form_data ? (is_string($demande->form_data) ? json_decode($demande->form_data, true) : $demande->form_data) : null,
+                        'nb_jours_deductibles' => $demande->nb_jours_deductibles,
+                        'date_matin' => $demande->date_matin,
+                        'date_apres_midi' => $demande->date_apres_midi,
+                        'date_journee' => $demande->date_journee,
+                        'periode_debut' => $demande->periode_debut,
+                        'periode_fin' => $demande->periode_fin,
                     ];
                 } catch (\Exception $e) {
                     \Log::error('❌ Erreur lors du formatage d\'une demande:', [

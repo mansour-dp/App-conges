@@ -114,12 +114,12 @@
         <!-- Informations employé -->
         <div class="employee-info">
           <div class="avatar">
-            {{ getInitials(demande.user?.nom || demande.user?.name, demande.user?.prenom || demande.user?.first_name) }}
+            {{ getInitials(demande.form_data?.nom || demande.user?.nom || demande.user?.name, demande.form_data?.prenom || demande.user?.prenom || demande.user?.first_name) }}
           </div>
           <div class="employee-details">
-            <h3>{{ getUserFullName(demande.user) }}</h3>
-            <p class="matricule">{{ demande.user?.matricule }}</p>
-            <p class="department">{{ demande.user?.department?.nom || 'Département non défini' }}</p>
+            <h3>{{ getEmployeeName(demande) }}</h3>
+            <p class="matricule">{{ getMatricule(demande) }}</p>
+            <p class="department">{{ getDepartement(demande) }}</p>
           </div>
         </div>
 
@@ -129,7 +129,7 @@
           <div v-if="demande.type_source === 'conges'" class="details-grid">
             <div class="detail-item">
               <span class="label">Type:</span>
-              <span class="value">{{ demande.type_conge?.nom || 'Non spécifié' }}</span>
+              <span class="value">{{ getTypeCongeLabel(demande) }}</span>
             </div>
             <div class="detail-item">
               <span class="label">Du:</span>
@@ -141,7 +141,7 @@
             </div>
             <div class="detail-item">
               <span class="label">Durée:</span>
-              <span class="value">{{ demande.duree_jours }} jour(s)</span>
+              <span class="value">{{ demande.duree_jours || demande.form_data?.nbJours }} jour(s)</span>
             </div>
           </div>
 
@@ -149,19 +149,41 @@
           <div v-else-if="demande.type_source === 'absences'" class="details-grid">
             <div class="detail-item">
               <span class="label">Type:</span>
-              <span class="value">{{ demande.type_absence?.nom || 'Non spécifié' }}</span>
+              <span class="value">Absence</span>
             </div>
-            <div class="detail-item">
+            <!-- Affichage conditionnel selon le type d'absence -->
+            <div v-if="demande.form_data?.matin || demande.date_matin" class="detail-item">
+              <span class="label">Matin du:</span>
+              <span class="value">{{ formatDate(demande.form_data?.matin || demande.date_matin) }}</span>
+            </div>
+            <div v-else-if="demande.form_data?.apresMidi || demande.date_apres_midi" class="detail-item">
+              <span class="label">Après-midi du:</span>
+              <span class="value">{{ formatDate(demande.form_data?.apresMidi || demande.date_apres_midi) }}</span>
+            </div>
+            <div v-else-if="demande.form_data?.journee || demande.date_journee" class="detail-item">
+              <span class="label">Journée du:</span>
+              <span class="value">{{ formatDate(demande.form_data?.journee || demande.date_journee) }}</span>
+            </div>
+            <div v-else-if="demande.form_data?.periodeDebut || demande.periode_debut" class="detail-item">
               <span class="label">Du:</span>
-              <span class="value">{{ formatDate(demande.date_debut) }}</span>
+              <span class="value">{{ formatDate(demande.form_data?.periodeDebut || demande.periode_debut) }}</span>
             </div>
-            <div class="detail-item">
+            <div v-if="(demande.form_data?.periodeDebut && demande.form_data?.periodeFin) || (demande.periode_debut && demande.periode_fin)" class="detail-item">
               <span class="label">Au:</span>
-              <span class="value">{{ formatDate(demande.date_fin) }}</span>
+              <span class="value">{{ formatDate(demande.form_data?.periodeFin || demande.periode_fin) }}</span>
             </div>
+            <!-- Durée calculée selon le type -->
             <div class="detail-item">
               <span class="label">Durée:</span>
-              <span class="value">{{ demande.duree_jours }} jour(s)</span>
+              <span class="value">
+                {{ 
+                  (demande.form_data?.matin || demande.date_matin || demande.form_data?.apresMidi || demande.date_apres_midi) ? '0.5 jour' :
+                  (demande.form_data?.journee || demande.date_journee) ? '1 jour' :
+                  demande.form_data?.nbJours ? demande.form_data.nbJours + ' jour(s)' :
+                  demande.nb_jours_deductibles ? demande.nb_jours_deductibles + ' jour(s)' :
+                  'N/A'
+                }}
+              </span>
             </div>
           </div>
 
@@ -185,9 +207,9 @@
             </div>
           </div>
 
-          <!-- Motif si présent -->
-          <div v-if="demande.motif" class="motif">
-            <strong>Motif:</strong> {{ demande.motif }}
+          <!-- Motif (pour toutes les demandes) -->
+          <div v-if="demande.motif || (demande.form_data && demande.form_data.motif)" class="motif">
+            <strong>Motif:</strong> {{ demande.motif || demande.form_data?.motif }}
           </div>
 
           <!-- Date de soumission -->
@@ -301,6 +323,15 @@ export default {
             demande.type_label = 'Congé'
             demande.type_icon = 'fas fa-calendar-alt'
             demande.type_color = '#3b82f6'
+            
+            // Normaliser form_data si c'est une string JSON
+            if (demande.form_data && typeof demande.form_data === 'string') {
+              try {
+                demande.form_data = JSON.parse(demande.form_data)
+              } catch (e) {
+                console.warn('Erreur parsing form_data pour demande', demande.id, e)
+              }
+            }
           })
           allDemandes = [...allDemandes, ...conges]
         } else if (congesResponse.status === 'rejected') {
@@ -310,11 +341,24 @@ export default {
         // Traitement des absences
         if (absencesResponse.status === 'fulfilled' && absencesResponse.value.data?.success) {
           const absences = absencesResponse.value.data.data || []
+          console.log('📋 Absences récupérées:', absences.length)
           absences.forEach(demande => {
             demande.type_source = 'absences'
             demande.type_label = 'Absence'
             demande.type_icon = 'fas fa-user-times'
             demande.type_color = '#ef4444'
+            
+            console.log('🔍 Debug absence:', demande.id, 'form_data:', demande.form_data)
+            
+            // Normaliser form_data si c'est une string JSON
+            if (demande.form_data && typeof demande.form_data === 'string') {
+              try {
+                demande.form_data = JSON.parse(demande.form_data)
+                console.log('✅ form_data parsé:', demande.form_data)
+              } catch (e) {
+                console.warn('Erreur parsing form_data pour demande absence', demande.id, e)
+              }
+            }
           })
           allDemandes = [...allDemandes, ...absences]
         } else if (absencesResponse.status === 'rejected') {
@@ -324,24 +368,30 @@ export default {
         // Traitement des reports
         if (reportsResponse.status === 'fulfilled' && reportsResponse.value.data?.success) {
           const reports = reportsResponse.value.data.data || []
+          console.log('📋 Reports récupérés:', reports.length)
           reports.forEach(demande => {
             demande.type_source = 'reports'
             demande.type_label = 'Report'
             demande.type_icon = 'fas fa-exchange-alt'
             demande.type_color = '#f59e0b'
+            
+            // Normaliser form_data si c'est une string JSON
+            if (demande.form_data && typeof demande.form_data === 'string') {
+              try {
+                demande.form_data = JSON.parse(demande.form_data)
+              } catch (e) {
+                console.warn('Erreur parsing form_data pour demande report', demande.id, e)
+              }
+            }
           })
           allDemandes = [...allDemandes, ...reports]
         } else if (reportsResponse.status === 'rejected') {
           console.warn('⚠️ Erreur lors du chargement des reports:', reportsResponse.reason)
+          console.error('🔍 Détails erreur reports:', reportsResponse.reason)
         }
         
         demandes.value = allDemandes
         console.log('✅ Total demandes récupérées:', allDemandes.length)
-        console.log('📊 Par type:', {
-          conges: allDemandes.filter(d => d.type_source === 'conges').length,
-          absences: allDemandes.filter(d => d.type_source === 'absences').length,
-          reports: allDemandes.filter(d => d.type_source === 'reports').length
-        })
         
         // Log des statuts des demandes reçues
         const statusCount = {}
@@ -380,24 +430,35 @@ export default {
         filtered = filtered.filter((d) => d.type_source === currentTypeFilter.value)
       }
 
-      // 3️⃣ FILTRAGE PAR RECHERCHE (optimisé pour nom et matricule)
+      // 3️⃣ FILTRAGE PAR RECHERCHE (optimisé pour nom et matricule avec form_data)
       if (searchTerm.value) {
         const term = searchTerm.value.toLowerCase().trim()
         filtered = filtered.filter((d) => {
-          // Recherche par nom complet
+          // 🔍 RECHERCHE DANS LES DONNÉES UTILISATEUR (par défaut)
           const nomComplet = getUserFullName(d.user).toLowerCase()
+          const matriculeUser = (d.user?.matricule || "").toLowerCase()
+          const nomUser = (d.user?.nom || d.user?.name || "").toLowerCase()
+          const prenomUser = (d.user?.prenom || d.user?.first_name || "").toLowerCase()
           
-          // Recherche par matricule
-          const matricule = (d.user?.matricule || "").toLowerCase()
+          // 🔍 RECHERCHE DANS LE FORM_DATA (données réelles du formulaire)
+          const formData = d.form_data || {}
+          const nomFormData = (formData.nom || "").toLowerCase()
+          const prenomFormData = (formData.prenom || "").toLowerCase()
+          const matriculeFormData = (formData.matricule || "").toLowerCase()
+          const uniteFormData = (formData.unite || "").toLowerCase()
+          const nomCompletFormData = `${prenomFormData} ${nomFormData}`.trim().toLowerCase()
           
-          // Recherche par nom séparé
-          const nom = (d.user?.nom || d.user?.name || "").toLowerCase()
-          const prenom = (d.user?.prenom || d.user?.first_name || "").toLowerCase()
-          
-          return nomComplet.includes(term) ||
-                 matricule.includes(term) ||
-                 nom.includes(term) ||
-                 prenom.includes(term)
+          // 🔍 RECHERCHE COMBINÉE - Priorité aux données du formulaire
+          return nomCompletFormData.includes(term) ||
+                 matriculeFormData.includes(term) ||
+                 nomFormData.includes(term) ||
+                 prenomFormData.includes(term) ||
+                 uniteFormData.includes(term) ||
+                 // Fallback sur les données utilisateur si form_data vide
+                 nomComplet.includes(term) ||
+                 matriculeUser.includes(term) ||
+                 nomUser.includes(term) ||
+                 prenomUser.includes(term)
         })
       }
 
@@ -493,6 +554,96 @@ export default {
           return 'danger'
         default:
           return 'secondary'
+      }
+    }
+
+    // Fonctions pour récupérer les vraies données du formulaire
+    const getEmployeeName = (demande) => {
+      // Priorité aux données du formulaire
+      const formPrenom = demande.form_data?.prenom
+      const formNom = demande.form_data?.nom
+      
+      if (formPrenom && formNom) {
+        return `${formPrenom} ${formNom}`
+      }
+      
+      // Fallback sur les données utilisateur avec plusieurs variantes
+      const userPrenom = demande.user?.prenom || demande.user?.first_name
+      const userNom = demande.user?.nom || demande.user?.name
+      
+      if (userPrenom && userNom) {
+        return `${userPrenom} ${userNom}`
+      }
+      
+      return 'Nom non défini'
+    }
+
+    const getTypeCongeLabel = (demande) => {
+      if (!demande.form_data) {
+        return demande.type_conge?.nom || 'Non spécifié'
+      }
+
+      // Déterminer le type basé sur les cases cochées dans le formulaire
+      const formData = demande.form_data
+      if (formData.annuel) return 'Congé annuel'
+      if (formData.fractionne) return 'Congé fractionné'
+      if (formData.legal) return 'Autres congés légaux'
+      
+      return 'Congé annuel' // Défaut
+    }
+
+    const getMatricule = (demande) => {
+      // Vérifier toutes les sources possibles avec defensive coding
+      try {
+        if (demande.form_data && typeof demande.form_data === 'object') {
+          const formMatricule = demande.form_data.matricule
+          if (formMatricule && formMatricule.toString().trim() !== '') {
+            return formMatricule
+          }
+        }
+        
+        if (demande.matricule && demande.matricule.toString().trim() !== '') {
+          return demande.matricule
+        }
+        
+        if (demande.user && demande.user.matricule && demande.user.matricule.toString().trim() !== '') {
+          return demande.user.matricule
+        }
+        
+        return 'Matricule non défini'
+      } catch (error) {
+        console.error('Erreur getMatricule:', error)
+        return demande.user?.matricule || 'Matricule non défini'
+      }
+    }
+
+    const getDepartement = (demande) => {
+      // Vérifier toutes les sources possibles avec defensive coding
+      try {
+        if (demande.form_data && typeof demande.form_data === 'object') {
+          const formUnite = demande.form_data.unite
+          if (formUnite && formUnite.toString().trim() !== '') {
+            return formUnite
+          }
+          
+          const formPoste = demande.form_data.poste
+          if (formPoste && formPoste.toString().trim() !== '') {
+            return formPoste
+          }
+        }
+        
+        if (demande.departement && demande.departement.toString().trim() !== '') {
+          return demande.departement
+        }
+        
+        if (demande.user && demande.user.department && demande.user.department.nom) {
+          return demande.user.department.nom
+        }
+        
+        return 'Département non défini'
+      } catch (error) {
+        console.error('Erreur getDepartement:', error)
+        return demande.user?.department?.nom || 'Département non défini'
       }
     }
 
@@ -661,6 +812,10 @@ export default {
       getInitials,
       getTypeSeverity,
       getStatusSeverity,
+      getEmployeeName,
+      getTypeCongeLabel,
+      getMatricule,
+      getDepartement,
       openValidationModal,
       closeValidationModal,
       handleValidationResult,
