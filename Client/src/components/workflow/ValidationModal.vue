@@ -603,7 +603,7 @@ export default {
       try {
         const validationData = {
           demande_id: this.demande.id,
-          decision: this.decision,
+          decision: this.decision === 'approve' ? 'approuve' : 'rejete', // Conversion pour l'API
           commentaire: this.commentaire,
           signature: this.signature,
           selectedUser: this.selectedUser  // Passer l'objet utilisateur complet

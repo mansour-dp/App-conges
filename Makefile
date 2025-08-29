@@ -58,16 +58,16 @@ vue-bash:
 	docker exec -it vue.js sh
 
 vue-install:
-	docker exec -it vue.js npm install
+	docker exec -it vue.js pnpm install
 
 vue-dev:
-	docker exec -it vue.js npm run dev
+	docker exec -it vue.js pnpm run dev
 
 vue-build:
-	docker exec -it vue.js npm run build
+	docker exec -it vue.js pnpm run build
 
 vue-lint:
-	docker exec -it vue.js npm run lint
+	docker exec -it vue.js pnpm run lint
 
 ### 🌐 Nginx (reverse proxy)
 

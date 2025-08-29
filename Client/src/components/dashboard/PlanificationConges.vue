@@ -186,30 +186,18 @@
           </tr>
           <tr>
             <td class="approbation-cell-avis">
-              <div
-                class="signature-pad"
-                @click="ouvrirPadSignature('superieur')"
-              >
-                <div v-if="formData.signatureSuperieur" class="signature-image">
-                  <img :src="formData.signatureSuperieur" alt="Signature" />
-                </div>
-                <div v-else class="signature-placeholder">
-                  <i class="fas fa-upload"></i>
-                  <span>Signature Supérieur</span>
+              <div class="signature-pad disabled">
+                <div class="signature-placeholder">
+                  <i class="fas fa-lock"></i>
+                  <span>Signature lors de l'approbation</span>
                 </div>
               </div>
             </td>
             <td class="approbation-cell-avis">
-              <div
-                class="signature-pad"
-                @click="ouvrirPadSignature('directeur')"
-              >
-                <div v-if="formData.signatureDirecteur" class="signature-image">
-                  <img :src="formData.signatureDirecteur" alt="Signature" />
-                </div>
-                <div v-else class="signature-placeholder">
-                  <i class="fas fa-upload"></i>
-                  <span>Signature Directeur</span>
+              <div class="signature-pad disabled">
+                <div class="signature-placeholder">
+                  <i class="fas fa-lock"></i>
+                  <span>Signature lors de l'approbation</span>
                 </div>
               </div>
             </td>
@@ -221,19 +209,10 @@
         <div class="rh-validation-row">
           <div class="rh-validation-col">
             <div class="rh-label-v2">Visa du Correspondant RH<sup>1</sup></div>
-            <div
-              class="signature-pad"
-              @click="ouvrirPadSignature('correspondantRH')"
-            >
-              <div
-                v-if="formData.signatureCorrespondantRH"
-                class="signature-image"
-              >
-                <img :src="formData.signatureCorrespondantRH" alt="Signature" />
-              </div>
-              <div v-else class="signature-placeholder">
-                <i class="fas fa-upload"></i>
-                <span>Upload Signature</span>
+            <div class="signature-pad disabled">
+              <div class="signature-placeholder">
+                <i class="fas fa-lock"></i>
+                <span>Signature lors de l'approbation</span>
               </div>
             </div>
           </div>
@@ -248,13 +227,10 @@
 
       <div class="drh-decision-absence">
         Approbation du Directeur des Ressources Humaines
-        <div class="signature-pad" @click="ouvrirPadSignature('directeurRH')">
-          <div v-if="formData.signatureDirecteurRH" class="signature-image">
-            <img :src="formData.signatureDirecteurRH" alt="Signature" />
-          </div>
-          <div v-else class="signature-placeholder">
-            <i class="fas fa-upload"></i>
-            <span>Upload Signature</span>
+        <div class="signature-pad disabled">
+          <div class="signature-placeholder">
+            <i class="fas fa-lock"></i>
+            <span>Signature lors de l'approbation</span>
           </div>
         </div>
         <div class="signature-line"></div>
@@ -548,8 +524,11 @@ export default {
       }
     },
     ouvrirPadSignature(type) {
-      this.currentSignatureType = type;
-      this.showSignaturePad = true;
+      // Seul l'employé peut signer
+      if (type === 'employe') {
+        this.currentSignatureType = type;
+        this.showSignaturePad = true;
+      }
     },
     fermerPadSignature() {
       this.showSignaturePad = false;
@@ -912,6 +891,21 @@ export default {
 .signature-pad:hover {
   border-color: #1976d2;
   background-color: #f0f7ff;
+}
+
+.signature-pad.disabled {
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #ddd;
+}
+
+.signature-pad.disabled:hover {
+  border-color: #ddd;
+  background: #f5f5f5;
+}
+
+.signature-pad.disabled .signature-placeholder {
+  color: #999;
 }
 
 .signature-image {

@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DemandeCongeController;
+use App\Http\Controllers\Api\DemandeAbsenceController;
+use App\Http\Controllers\Api\DemandeReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\UserController;
@@ -45,6 +47,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/demandes-conges/recues', [DemandeCongeController::class, 'demandesRecues']);
     Route::post('/demandes-conges/submit-with-workflow', [DemandeCongeController::class, 'submitWithWorkflow']);
     Route::post('/demandes-conges/validate-with-next', [DemandeCongeController::class, 'validateWithNext']);
+    
+    // Routes spécifiques pour demandes d'absence
+    Route::get('/demandes-absences/recues', [DemandeAbsenceController::class, 'demandesRecues']);
+    Route::get('/demandes-absences/en-attente', [DemandeAbsenceController::class, 'demandesEnAttente']);
+    Route::post('/demandes-absences/submit-with-workflow', [DemandeAbsenceController::class, 'submitWithWorkflow']);
+    Route::post('/demandes-absences/validate-with-next', [DemandeAbsenceController::class, 'validateWithNext']);
+    
+    // Routes spécifiques pour demandes de report
+    Route::get('/demandes-reports/recues', [DemandeReportController::class, 'demandesRecues']);
+    Route::get('/demandes-reports/en-attente', [DemandeReportController::class, 'demandesEnAttente']);
+    Route::post('/demandes-reports/submit-with-workflow', [DemandeReportController::class, 'submitWithWorkflow']);
+    Route::post('/demandes-reports/validate-with-next', [DemandeReportController::class, 'validateWithNext']);
+    
+    // Routes de recherche d'utilisateurs
     Route::get('/users/search-by-email', [DemandeCongeController::class, 'searchUsersByEmail']);
     Route::get('/users/search-by-name', [DemandeCongeController::class, 'searchUsersByName']);
     Route::get('/users/search-by-role', [DemandeCongeController::class, 'searchUsersByRole']);
@@ -71,6 +87,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gestion des périodes de congés et jours fériés (Admin)
     Route::apiResource('leave-plans', LeavePlanController::class);
     Route::apiResource('holidays', HolidayController::class);
+
+    // Ressources pour demandes d'absence et de report
+    Route::apiResource('demandes-absences', DemandeAbsenceController::class);
+    Route::apiResource('demandes-reports', DemandeReportController::class);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

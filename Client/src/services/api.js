@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Récupérer la configuration depuis les variables d'environnement
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Configuration de base d'Axios avec plus de robustesse
 const apiClient = axios.create({
@@ -136,6 +136,30 @@ export const demandesApi = {
   getDemandesRecues: (params = {}) => apiClient.get('/demandes-conges/recues', { params }),
   soumettreAvecWorkflow: (data) => apiClient.post('/demandes-conges/submit-with-workflow', data),
   validerAvecSuivant: (data) => apiClient.post('/demandes-conges/validate-with-next', data),
+};
+
+export const demandesAbsenceApi = {
+  list: (params = {}) => apiClient.get('/demandes-absences', { params }),
+  create: (data) => apiClient.post('/demandes-absences', data),
+  get: (id) => apiClient.get(`/demandes-absences/${id}`),
+  update: (id, data) => apiClient.put(`/demandes-absences/${id}`, data),
+  delete: (id) => apiClient.delete(`/demandes-absences/${id}`),
+  getDemandesEnAttente: (params = {}) => apiClient.get('/demandes-absences/en-attente', { params }),
+  getDemandesRecues: (params = {}) => apiClient.get('/demandes-absences/recues', { params }),
+  soumettreAvecWorkflow: (data) => apiClient.post('/demandes-absences/submit-with-workflow', data),
+  validerAvecSuivant: (data) => apiClient.post('/demandes-absences/validate-with-next', data),
+};
+
+export const demandesReportApi = {
+  list: (params = {}) => apiClient.get('/demandes-reports', { params }),
+  create: (data) => apiClient.post('/demandes-reports', data),
+  get: (id) => apiClient.get(`/demandes-reports/${id}`),
+  update: (id, data) => apiClient.put(`/demandes-reports/${id}`, data),
+  delete: (id) => apiClient.delete(`/demandes-reports/${id}`),
+  getDemandesEnAttente: (params = {}) => apiClient.get('/demandes-reports/en-attente', { params }),
+  getDemandesRecues: (params = {}) => apiClient.get('/demandes-reports/recues', { params }),
+  soumettreAvecWorkflow: (data) => apiClient.post('/demandes-reports/submit-with-workflow', data),
+  validerAvecSuivant: (data) => apiClient.post('/demandes-reports/validate-with-next', data),
 };
 
 export const notificationsApi = {

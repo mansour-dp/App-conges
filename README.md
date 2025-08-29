@@ -48,11 +48,11 @@ APP/
    ```
 2. Installez les dépendances :
    ```bash
-   npm install
+   pnpm install
    ```
 3. Lancez le serveur de développement :
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
 ### Backend
@@ -89,7 +89,7 @@ APP/
 ### Frontend
 Lancez les tests unitaires :
 ```bash
-npm run test
+pnpm run test
 ```
 
 ### Backend

@@ -46,7 +46,7 @@ cd App-Conges
 2. Installez les dépendances :
 
 ```bash
-npm install
+pnpm install
 # ou
 yarn install
 ```
@@ -54,7 +54,7 @@ yarn install
 3. Lancez le serveur de développement :
 
 ```bash
-npm run dev
+pnpm run dev
 # ou
 yarn dev
 ```

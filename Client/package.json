@@ -9,22 +9,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^6.5.1",
+    "@fortawesome/fontawesome-free": "^6.7.2",
     "@mdi/font": "^7.4.47",
-    "@primevue/themes": "^4.3.6",
-    "axios": "^1.10.0",
-    "pinia": "^2.1.7",
+    "@primevue/themes": "^4.3.7",
+    "axios": "^1.11.0",
+    "pinia": "^2.3.1",
     "primeicons": "^7.0.0",
-    "primevue": "^4.3.6",
-    "sass": "^1.89.2",
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0",
+    "primevue": "^4.3.7",
+    "sass": "^1.91.0",
+    "vue": "^3.5.20",
+    "vue-router": "^4.5.1",
     "vue-signature-pad": "^3.0.2",
-    "vuetify": "^3.8.9"
+    "vuetify": "^3.9.6"
   },
   "devDependencies": {
+    "@types/node": "^24.3.0",
     "@vitejs/plugin-vue": "^5.2.4",
-    "vite": "^5.1.6",
-    "vite-plugin-vue-devtools": "^7.0.16"
+    "vite": "^5.4.19",
+    "vite-plugin-vue-devtools": "^7.7.7"
   }
 }

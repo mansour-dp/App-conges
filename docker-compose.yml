@@ -15,7 +15,7 @@ services:
     build: ./Client
     container_name: vue.js
     working_dir: /app
-    command: npm run dev
+    command: pnpm run dev
     volumes:
       - ./Client:/app
     networks:

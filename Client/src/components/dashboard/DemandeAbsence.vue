@@ -161,70 +161,34 @@
         <tbody>
           <tr>
             <td>
-              <div
-                class="signature-pad"
-                @click="ouvrirPadSignature('superieur')"
-              >
-                <div v-if="formData.signatureSuperieur" class="signature-image">
-                  <img :src="formData.signatureSuperieur" alt="Signature" />
-                </div>
-                <div v-else class="signature-placeholder">
-                  <i class="fas fa-upload"></i>
-                  <span>Upload Signature</span>
+              <div class="signature-pad disabled">
+                <div class="signature-placeholder">
+                  <i class="fas fa-lock"></i>
+                  <span>Signature lors de l'approbation</span>
                 </div>
               </div>
             </td>
             <td>
-              <div
-                class="signature-pad"
-                @click="ouvrirPadSignature('directeur')"
-              >
-                <div v-if="formData.signatureDirecteur" class="signature-image">
-                  <img :src="formData.signatureDirecteur" alt="Signature" />
-                </div>
-                <div v-else class="signature-placeholder">
-                  <i class="fas fa-upload"></i>
-                  <span>Upload Signature</span>
+              <div class="signature-pad disabled">
+                <div class="signature-placeholder">
+                  <i class="fas fa-lock"></i>
+                  <span>Signature lors de l'approbation</span>
                 </div>
               </div>
             </td>
             <td>
-              <div
-                class="signature-pad"
-                @click="ouvrirPadSignature('correspondantRH')"
-              >
-                <div
-                  v-if="formData.signatureCorrespondantRH"
-                  class="signature-image"
-                >
-                  <img
-                    :src="formData.signatureCorrespondantRH"
-                    alt="Signature"
-                  />
-                </div>
-                <div v-else class="signature-placeholder">
-                  <i class="fas fa-upload"></i>
-                  <span>Upload Signature</span>
+              <div class="signature-pad disabled">
+                <div class="signature-placeholder">
+                  <i class="fas fa-lock"></i>
+                  <span>Signature lors de l'approbation</span>
                 </div>
               </div>
             </td>
             <td>
-              <div
-                class="signature-pad"
-                @click="ouvrirPadSignature('validationDeptAdmin')"
-              >
-                <div
-                  v-if="formData.signatureValidationDeptAdmin"
-                  class="signature-image"
-                >
-                  <img
-                    :src="formData.signatureValidationDeptAdmin"
-                    alt="Signature"
-                  />
-                </div>
-                <div v-else class="signature-placeholder">
-                  <i class="fas fa-upload"></i>
-                  <span>Upload Signature</span>
+              <div class="signature-pad disabled">
+                <div class="signature-placeholder">
+                  <i class="fas fa-lock"></i>
+                  <span>Signature lors de l'approbation</span>
                 </div>
               </div>
             </td>
@@ -234,13 +198,10 @@
 
       <div class="drh-decision-absence">
         Décision du Directeur des Ressources Humaines
-        <div class="signature-pad" @click="ouvrirPadSignature('directeurRH')">
-          <div v-if="formData.signatureDirecteurRH" class="signature-image">
-            <img :src="formData.signatureDirecteurRH" alt="Signature" />
-          </div>
-          <div v-else class="signature-placeholder">
-            <i class="fas fa-upload"></i>
-            <span>Upload Signature</span>
+        <div class="signature-pad disabled">
+          <div class="signature-placeholder">
+            <i class="fas fa-lock"></i>
+            <span>Signature lors de l'approbation</span>
           </div>
         </div>
         <div class="signature-line"></div>
@@ -254,7 +215,7 @@
           type="button"
           class="btn-envoyer"
           @click="envoyerDemande"
-          :disabled="demandeEnvoyee"
+          :disabled="demandeEnvoyee || !formData.signatureEmploye"
         >
           Soumettre
         </button>
@@ -262,22 +223,46 @@
       <div v-if="confirmation" class="confirmation-message">
         Demande envoyée avec succès !
       </div>
+      <div v-if="errors.length > 0" class="error-messages">
+        <div v-for="error in errors" :key="error" class="error-message">
+          {{ error }}
+        </div>
+      </div>
     </form>
     <SignaturePad
       v-if="showSignaturePad"
       @close="showSignaturePad = false"
       @signature-saved="sauvegarderSignature"
     />
+    
+    <!-- WorkflowModal -->
+    <WorkflowModal
+      v-model="showWorkflowModal"
+      @submit="handleWorkflowSubmit"
+      :demande="currentDemande"
+    />
   </div>
 </template>
 
 <script>
 import SignaturePad from "../ui/SignaturePad.vue";
+import { useAbsencesStore } from '@/stores/absences'
+import WorkflowModal from '@/components/workflow/WorkflowModal.vue'
+import { useToast } from 'primevue/usetoast'
+import { useUserStore } from '@/stores/users'
+import { demandesAbsenceApi } from '@/services/api'
 
 export default {
   name: "DemandeAbsence",
   components: {
     SignaturePad,
+    WorkflowModal,
+  },
+  setup() {
+    const absencesStore = useAbsencesStore()
+    const toast = useToast()
+    const userStore = useUserStore()
+    return { absencesStore, toast, userStore }
   },
   data() {
     return {
@@ -311,6 +296,10 @@ export default {
       },
       demandeEnvoyee: false,
       confirmation: false,
+      errors: [],
+      showWorkflowModal: false,
+      currentDemande: null,
+      isSubmitting: false, // Protection contre les soumissions multiples
     };
   },
   computed: {
@@ -324,6 +313,24 @@ export default {
         this.formData.signatureDirecteurRH
       );
     },
+    nbJours() {
+      if (!this.formData.periodeDebut || !this.formData.periodeFin) {
+        return 0
+      }
+      const debut = new Date(this.formData.periodeDebut)
+      const fin = new Date(this.formData.periodeFin)
+      const diffTime = Math.abs(fin - debut)
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    },
+    isDraftable() {
+      return this.formData.prenom && this.formData.nom && this.formData.matricule
+    },
+    isSubmittable() {
+      return this.isDraftable &&
+        this.formData.motif &&
+        (this.formData.matin || this.formData.apresMidi || this.formData.journee || 
+         (this.formData.periodeDebut && this.formData.periodeFin))
+    }
   },
   mounted() {
     const user = localStorage.getItem("user");
@@ -345,15 +352,220 @@ export default {
       window.print();
     },
     envoyerDemande() {
-      this.demandeEnvoyee = true;
-      this.confirmation = true;
-      setTimeout(() => {
-        this.confirmation = false;
-      }, 3000);
+      this.soumettreDemandeAvecWorkflow();
+    },
+    async enregistrerBrouillon() {
+      try {
+        this.errors = []
+        const demandeData = this.prepareDemandeData()
+        demandeData.status = 'brouillon'
+        
+        await this.absencesStore.createDemande(demandeData)
+        
+        this.confirmation = true
+        setTimeout(() => {
+          this.confirmation = false
+        }, 3000)
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du brouillon:', error)
+        this.errors = [error.response?.data?.message || 'Erreur lors de l\'enregistrement']
+      }
+    },
+    async soumettreDemandeAvecWorkflow() {
+      // Protection contre les soumissions multiples
+      if (this.isSubmitting) {
+        console.log('⚠️ Soumission déjà en cours, ignoré...')
+        return
+      }
+
+      console.log('🚀 Début de la soumission...')
+      this.isSubmitting = true
+      
+      try {
+        this.errors = []
+        
+        // Validation des champs obligatoires
+        if (!this.validateForm()) {
+          this.isSubmitting = false
+          return;
+        }
+
+        // Créer d'abord la demande
+        const demandeData = this.prepareDemandeData()
+        demandeData.statut = 'brouillon' // Statut initial avant workflow
+        
+        console.log('Données à envoyer:', demandeData); // Debug
+        
+        const response = await demandesAbsenceApi.create(demandeData)
+        
+        if (response.data.success) {
+          this.currentDemande = response.data.data
+          // Ouvrir le modal de workflow
+          this.showWorkflowModal = true
+          console.log('✅ Modal ouvert:', this.showWorkflowModal)
+        } else {
+          throw new Error(response.data.message || 'Erreur lors de la création de la demande')
+        }
+        
+      } catch (error) {
+        console.error('Erreur lors de la création de la demande:', error)
+        console.error('Détails de l\'erreur:', error.response?.data)
+        this.errors = [error.response?.data?.message || 'Erreur lors de la création de la demande']
+      } finally {
+        this.isSubmitting = false
+      }
+    },
+    async handleWorkflowSubmit(workflowData) {
+      try {
+        console.log('🚀 Début handleWorkflowSubmit absence avec:', workflowData)
+        console.log('📋 currentDemande:', this.currentDemande)
+        
+        if (!this.currentDemande?.id) {
+          throw new Error('Aucune demande créée pour le workflow');
+        }
+
+        console.log('Données envoyées au workflow:', {
+          demande_id: this.currentDemande.id,
+          superieur_email: workflowData.emailSuperieur
+        });
+
+        // Envoyer la demande avec l'email du supérieur
+        const response = await demandesAbsenceApi.soumettreAvecWorkflow({
+          demande_id: this.currentDemande.id,
+          superieur_email: workflowData.emailSuperieur
+          // La signature de l'employé est déjà stockée dans la demande
+        });
+
+        if (response.data.success) {
+          this.demandeEnvoyee = true;
+          this.confirmation = true;
+          this.showWorkflowModal = false;
+
+          // Afficher le toast de succès
+          this.toast.add({
+            severity: 'success',
+            summary: 'Demande envoyée',
+            detail: 'Votre demande d\'absence a été envoyée à votre supérieur avec succès',
+            life: 5000
+          });
+
+          setTimeout(() => {
+            this.confirmation = false;
+            // Rediriger vers l'état des demandes selon le rôle de l'utilisateur
+            this.redirectToCorrectEtatDemandes();
+          }, 3000);
+          
+        } else {
+          throw new Error(response.data.message || 'Erreur lors de l\'envoi');
+        }
+
+      } catch (error) {
+        console.error('💥 Erreur lors de la soumission du workflow:', error)
+        console.error('💥 Détails erreur:', error.response?.data)
+        this.errors = [error.response?.data?.message || error.message || 'Erreur lors de la soumission']
+        
+        // Toast d'erreur
+        this.toast.add({
+          severity: 'error',
+          summary: 'Erreur d\'envoi',
+          detail: 'Erreur lors de l\'envoi au supérieur: ' + (error.response?.data?.message || error.message),
+          life: 5000
+        })
+      } finally {
+        this.isSubmitting = false
+      }
+    },
+
+    validateForm() {
+      if (!this.formData.prenom || !this.formData.nom || !this.formData.matricule) {
+        this.toast.add({
+          severity: 'warn',
+          summary: 'Informations manquantes',
+          detail: 'Veuillez remplir les informations personnelles (prénom, nom, matricule)',
+          life: 4000
+        });
+        return false;
+      }
+
+      if (!this.formData.motif) {
+        this.toast.add({
+          severity: 'warn',
+          summary: 'Motif requis',
+          detail: 'Veuillez saisir le motif de votre absence',
+          life: 4000
+        });
+        return false;
+      }
+
+      if (!this.formData.signatureEmploye) {
+        this.toast.add({
+          severity: 'warn',
+          summary: 'Signature requise',
+          detail: 'Votre signature est obligatoire pour soumettre la demande',
+          life: 4000
+        });
+        return false;
+      }
+
+      return true;
+    },
+    
+    // Méthode pour rediriger vers le bon dashboard basé sur le rôle de l'utilisateur
+    redirectToCorrectEtatDemandes() {
+      const user = this.userStore.currentUser;
+      
+      if (!user || !user.roles || user.roles.length === 0) {
+        // Par défaut, rediriger vers le dashboard employé
+        this.$router.push({ name: 'etatDemandes' });
+        return;
+      }
+
+      // Vérifier les rôles dans l'ordre de priorité
+      const roles = user.roles.map(role => role.nom || role.name || role);
+      
+      if (roles.includes('Directeur RH') || roles.includes('directeur_rh')) {
+        this.$router.push({ name: 'directeurRHEtatDemandes' });
+      } else if (roles.includes('Directeur Unité') || roles.includes('directeur_unite')) {
+        this.$router.push({ name: 'directeurUniteEtatDemandes' });
+      } else if (roles.includes('Supérieur') || roles.includes('superieur') || roles.includes('Superviseur') || roles.includes('superviseur')) {
+        this.$router.push({ name: 'superieurEtatDemandes' });
+      } else {
+        // Rôle employé ou autre
+        this.$router.push({ name: 'etatDemandes' });
+      }
+    },
+    prepareDemandeData() {
+      // Déterminer le type d'absence et les dates
+      let typeAbsence = 'personnelle' // Type par défaut
+      
+      return {
+        type_absence: typeAbsence,
+        date_matin: this.formData.matin || null,
+        date_apres_midi: this.formData.apresMidi || null,
+        date_journee: this.formData.journee || null,
+        periode_debut: this.formData.periodeDebut || null,
+        periode_fin: this.formData.periodeFin || null,
+        nb_jours_deductibles: this.nbJours,
+        motif: this.formData.motif,
+        commentaire: this.formData.motif,
+        signature_interresse: 'signature_placeholder',
+        form_data: {
+          prenom: this.formData.prenom,
+          nom: this.formData.nom,
+          matricule: this.formData.matricule,
+          unite: this.formData.unite,
+          poste: this.formData.poste,
+          adresse: this.formData.adresse,
+          telephone: this.formData.telephone,
+        }
+      }
     },
     ouvrirPadSignature(type) {
-      this.currentSignatureType = type;
-      this.showSignaturePad = true;
+      // Seul l'employé peut signer
+      if (type === 'employe') {
+        this.currentSignatureType = type;
+        this.showSignaturePad = true;
+      }
     },
     sauvegarderSignature(signatureData) {
       const type = this.currentSignatureType;
@@ -693,6 +905,28 @@ export default {
   margin: 5px auto;
 }
 
+/* Seule la signature de l'employé reste cliquable */
+.section-signature .signature-pad {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.signature-pad.disabled {
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #ddd;
+  opacity: 1;
+}
+
+.signature-pad.disabled:hover {
+  border-color: #ddd;
+  background: #f5f5f5;
+}
+
+.signature-pad.disabled .signature-placeholder {
+  color: #999;
+}
+
 .note-bas {
   font-size: 12px;
   color: #888;
@@ -757,5 +991,18 @@ select {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+.error-messages {
+  margin-top: 15px;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  padding: 8px;
+  border-radius: 5px;
+  margin-bottom: 5px;
 }
 </style>

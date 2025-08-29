@@ -3,17 +3,28 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "jsx": "preserve",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "allowJs": true,
     "checkJs": false,
-    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"],
+    "lib": ["esnext", "dom", "dom.iterable"]
   },
-  "include": ["src/**/*.vue", "src/**/*.js"],
+  "include": [
+    "src/**/*.vue",
+    "src/**/*.js", 
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/env.d.ts"
+  ],
   "exclude": ["node_modules", "dist", "**/*.vue.bak"]
 }

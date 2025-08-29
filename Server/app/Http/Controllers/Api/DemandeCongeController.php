@@ -617,7 +617,7 @@ class DemandeCongeController extends Controller
             \Log::info('Recherche utilisateur avec email:', ['email' => $request->email]);
             
             $validator = Validator::make($request->all(), [
-                'email' => 'required|string|min:3'
+                'email' => 'required|string|min:2'
             ]);
 
             if ($validator->fails()) {

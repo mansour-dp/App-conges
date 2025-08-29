@@ -1,9 +1,13 @@
 FROM node:20-alpine AS build-stage
+
+# Installer pnpm
+RUN npm install -g pnpm
+
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+COPY package*.json pnpm-lock.yaml ./
+RUN pnpm install
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 FROM nginx:alpine AS production-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
