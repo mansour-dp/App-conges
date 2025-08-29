@@ -10,49 +10,85 @@
     </div>
 
     <!-- Filtres simples -->
-    <div class="filters-bar">
-      <div class="search-box">
-        <i class="pi pi-search"></i>
-        <InputText
-          v-model="searchTerm"
-          placeholder="Rechercher par nom ou matricule..."
-          class="search-input"
-        />
+    <div class="filters-container">
+      <!-- Ligne principale : Recherche + Filtres de type -->
+      <div class="filters-bar">
+        <div class="search-box">
+          <i class="pi pi-search"></i>
+          <InputText
+            v-model="searchTerm"
+            placeholder="Rechercher par nom ou matricule..."
+            class="search-input"
+          />
+        </div>
+        
+        <div class="filter-buttons">
+          <Button
+            @click="setTypeFilter('tous')"
+            label="Tous"
+            :class="{ 'filter-active': currentTypeFilter === 'tous' }"
+            class="filter-btn filter-tous"
+            size="small"
+            icon="pi pi-list"
+          />
+          <Button
+            @click="setTypeFilter('conges')"
+            label="Congés"
+            :class="{ 'filter-active': currentTypeFilter === 'conges' }"
+            class="filter-btn filter-conges"
+            size="small"
+            icon="pi pi-calendar"
+          />
+          <Button
+            @click="setTypeFilter('absences')"
+            label="Absences"
+            :class="{ 'filter-active': currentTypeFilter === 'absences' }"
+            class="filter-btn filter-absences"
+            size="small"
+            icon="pi pi-times-circle"
+          />
+          <Button
+            @click="setTypeFilter('reports')"
+            label="Reports"
+            :class="{ 'filter-active': currentTypeFilter === 'reports' }"
+            class="filter-btn filter-reports"
+            size="small"
+            icon="pi pi-refresh"
+          />
+        </div>
       </div>
-      
-      <div class="filter-buttons">
-        <Button
-          @click="setTypeFilter('tous')"
-          label="Tous"
-          :class="{ 'filter-active': currentTypeFilter === 'tous' }"
-          class="filter-btn filter-tous"
-          size="small"
-          icon="pi pi-list"
-        />
-        <Button
-          @click="setTypeFilter('conges')"
-          label="Congés"
-          :class="{ 'filter-active': currentTypeFilter === 'conges' }"
-          class="filter-btn filter-conges"
-          size="small"
-          icon="pi pi-calendar"
-        />
-        <Button
-          @click="setTypeFilter('absences')"
-          label="Absences"
-          :class="{ 'filter-active': currentTypeFilter === 'absences' }"
-          class="filter-btn filter-absences"
-          size="small"
-          icon="pi pi-times-circle"
-        />
-        <Button
-          @click="setTypeFilter('reports')"
-          label="Reports"
-          :class="{ 'filter-active': currentTypeFilter === 'reports' }"
-          class="filter-btn filter-reports"
-          size="small"
-          icon="pi pi-refresh"
-        />
+
+      <!-- Ligne secondaire : Filtre de rôle (seulement pour double casquette) -->
+      <div v-if="showRoleFilter" class="role-filter-bar">
+        <div class="role-filter-content">
+          <span class="filter-label">Voir mes demandes en tant que :</span>
+          <div class="role-buttons">
+            <Button
+              @click="setRoleFilter('tous')"
+              label="Tous"
+              :class="{ 'filter-active': currentRoleFilter === 'tous' }"
+              class="filter-btn filter-role-tous"
+              size="small"
+              icon="pi pi-list"
+            />
+            <Button
+              @click="setRoleFilter('superieur')"
+              label="Supérieur"
+              :class="{ 'filter-active': currentRoleFilter === 'superieur' }"
+              class="filter-btn filter-role-superieur"
+              size="small"
+              icon="pi pi-user"
+            />
+            <Button
+              @click="setRoleFilter('institutionnel')"
+              :label="getRoleInstitutionnelLabel()"
+              :class="{ 'filter-active': currentRoleFilter === 'institutionnel' }"
+              class="filter-btn filter-role-institutionnel"
+              size="small"
+              icon="pi pi-building"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -237,6 +273,7 @@
     <ValidationModal
       v-model="showValidationModal"
       :demande="selectedDemande"
+      :validation-context="validationContext"
       @submit="handleValidationResult"
     />
   </div>
@@ -270,8 +307,10 @@ export default {
     const searchTerm = ref("")
     const currentFilter = ref("toutes")
     const currentTypeFilter = ref("tous") // Nouveau filtre par type
+    const currentRoleFilter = ref("tous") // Nouveau filtre par rôle (supérieur vs institutionnel)
     const showValidationModal = ref(false)
     const selectedDemande = ref(null)
+    const validationContext = ref(null) // Contexte : 'superieur' ou 'institutionnel'
     const isLastValidator = ref(false)
     const loading = ref(false)
     const error = ref(null)
@@ -294,6 +333,28 @@ export default {
     const allowedStatuses = computed(() => {
       return ROLE_STATUS_MAP[currentUserRole.value] || []
     })
+
+    // Vérifier si l'utilisateur a une double casquette (supérieur + rôle institutionnel)
+    const showRoleFilter = computed(() => {
+      const role = currentUserRole.value
+      return role === 'Directeur Unité' || role === 'Responsable RH' || role === 'Directeur RH'
+    })
+
+    // Obtenir le label du rôle institutionnel
+    const getRoleInstitutionnelLabel = () => {
+      const role = currentUserRole.value
+      switch (role) {
+        case 'Directeur Unité': return 'Directeur Unité'
+        case 'Responsable RH': return 'Responsable RH'  
+        case 'Directeur RH': return 'Directeur RH'
+        default: return 'Rôle Institutionnel'
+      }
+    }
+
+    // Fonction pour définir le filtre de rôle
+    const setRoleFilter = (roleFilter) => {
+      currentRoleFilter.value = roleFilter
+    }
 
     const demandes = ref([])
 
@@ -428,6 +489,28 @@ export default {
       // 2️⃣ FILTRAGE PAR TYPE DE DEMANDE
       if (currentTypeFilter.value !== "tous") {
         filtered = filtered.filter((d) => d.type_source === currentTypeFilter.value)
+      }
+
+      // 2️⃣bis FILTRAGE PAR RÔLE (supérieur vs institutionnel) - Seulement pour les rôles avec double casquette
+      if (showRoleFilter.value && currentRoleFilter.value !== "tous") {
+        const role = currentUserRole.value
+        
+        filtered = filtered.filter((demande) => {
+          if (currentRoleFilter.value === "superieur") {
+            // Montrer seulement les demandes où ils agissent comme supérieur
+            return demande.statut === 'en_attente_superieur'
+          } else if (currentRoleFilter.value === "institutionnel") {
+            // Montrer seulement les demandes où ils agissent dans leur rôle institutionnel
+            if (role === 'Directeur Unité') {
+              return demande.statut === 'en_attente_directeur_unite'
+            } else if (role === 'Responsable RH') {
+              return demande.statut === 'en_attente_responsable_rh'
+            } else if (role === 'Directeur RH') {
+              return demande.statut === 'en_attente_directeur_rh'
+            }
+          }
+          return true
+        })
       }
 
       // 3️⃣ FILTRAGE PAR RECHERCHE (optimisé pour nom et matricule avec form_data)
@@ -647,14 +730,40 @@ export default {
       }
     }
 
+    // Fonction pour déterminer le contexte de validation d'une demande
+    const getValidationContext = (demande) => {
+      const role = currentUserRole.value
+      const statut = demande.statut
+      
+      // Si c'est en attente du supérieur, c'est un contexte hiérarchique
+      if (statut === 'en_attente_superieur') {
+        return 'superieur'
+      }
+      
+      // Si c'est en attente d'un rôle institutionnel spécifique
+      if (role === 'Directeur Unité' && statut === 'en_attente_directeur_unite') {
+        return 'directeur_unite'
+      } else if (role === 'Responsable RH' && statut === 'en_attente_responsable_rh') {
+        return 'responsable_rh'
+      } else if (role === 'Directeur RH' && statut === 'en_attente_directeur_rh') {
+        return 'directeur_rh'
+      }
+      
+      // Fallback
+      return 'institutionnel'
+    }
+
     const openValidationModal = (demande) => {
       selectedDemande.value = demande
+      // Déterminer le contexte de validation
+      validationContext.value = getValidationContext(demande)
       showValidationModal.value = true
     }
 
     const closeValidationModal = () => {
       showValidationModal.value = false
       selectedDemande.value = null
+      validationContext.value = null
     }
 
     const handleValidationResult = async (validationData) => {
@@ -800,8 +909,11 @@ export default {
       searchTerm,
       currentFilter,
       currentTypeFilter,
+      currentRoleFilter,
+      showRoleFilter,
       showValidationModal,
       selectedDemande,
+      validationContext,
       loading,
       error,
       currentUserRole,
@@ -816,11 +928,13 @@ export default {
       getTypeCongeLabel,
       getMatricule,
       getDepartement,
+      getRoleInstitutionnelLabel,
       openValidationModal,
       closeValidationModal,
       handleValidationResult,
       setFilter,
       setTypeFilter,
+      setRoleFilter,
       chargerDemandes
     }
   }
@@ -867,17 +981,44 @@ export default {
   font-weight: 600;
 }
 
+/* Container principal pour tous les filtres */
+.filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
 /* Barre de filtres simple */
 .filters-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 2rem;
-  margin-bottom: 2rem;
   background: white;
   padding: 1.5rem;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Ligne secondaire pour le filtre de rôle */
+.role-filter-bar {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.role-filter-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.role-buttons {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .search-box {
@@ -891,12 +1032,37 @@ export default {
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: #64748b;
+  font-size: 1rem;
+  z-index: 1;
+  transition: color 0.3s ease;
+}
+
+.search-box:focus-within i {
+  color: #3b82f6;
 }
 
 .search-input {
   width: 100%;
   padding-left: 2.5rem !important;
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  font-size: 0.95rem !important;
+  color: #334155 !important;
+  transition: all 0.3s ease !important;
+}
+
+.search-input:focus {
+  background-color: white !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  outline: none !important;
+}
+
+.search-input::placeholder {
+  color: #64748b !important;
+  font-weight: 400 !important;
 }
 
 .filter-buttons {
@@ -955,6 +1121,9 @@ export default {
   transition: all 0.2s ease;
   cursor: pointer;
   border-left: 4px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .demande-card:hover {
@@ -1080,6 +1249,9 @@ export default {
 /* Détails de la demande */
 .demande-details {
   padding: 1rem 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .details-grid {
@@ -1135,6 +1307,7 @@ export default {
   padding: 1rem 1.5rem;
   background: #f8fafc;
   border-top: 1px solid #e5e7eb;
+  margin-top: auto;
 }
 
 /* Responsive */
@@ -1146,7 +1319,15 @@ export default {
 
 /* Styles pour les boutons de filtrage */
 .filter-buttons {
+  display: flex;
   gap: 0.75rem;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
 }
 
 .filter-btn {
@@ -1208,6 +1389,40 @@ export default {
   color: white;
   border-color: #f59e0b;
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Boutons de filtre de rôle */
+.filter-role-tous {
+  border-color: #d1d5db;
+}
+
+.filter-role-tous.filter-active {
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
+  color: white;
+  border-color: #6b7280;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.filter-role-superieur {
+  border-color: #d1d5db;
+}
+
+.filter-role-superieur.filter-active {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.filter-role-institutionnel {
+  border-color: #d1d5db;
+}
+
+.filter-role-institutionnel.filter-active {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 /* Skeleton Loading */

@@ -75,7 +75,7 @@
           active-class="active"
         >
           <i class="fas fa-list"></i>
-          <span>Demandes en attente</span>
+          <span>Liste des demandes</span>
         </router-link>
         <router-link
           :to="{ name: `${rolePrefix}ValidationDemandes` }"

@@ -628,7 +628,8 @@ class DemandeCongeController extends Controller
             }
 
             // Chercher d'abord une correspondance exacte
-            $exactMatch = \App\Models\User::where('email', $request->email)
+            $exactMatch = \App\Models\User::with(['role', 'department'])
+                                         ->where('email', $request->email)
                                          ->where('id', '!=', $request->user()->id)
                                          ->first();
 
@@ -645,7 +646,8 @@ class DemandeCongeController extends Controller
                     'first_name' => $exactMatch->first_name,
                     'last_name' => $exactMatch->name,
                     'roles' => $exactMatch->role ? [$exactMatch->role] : [],
-                    'department' => $exactMatch->department
+                    'department' => $exactMatch->department,
+                    'is_active' => $exactMatch->is_active
                 ];
                 \Log::info('Utilisateur trouvé (exact):', ['user' => $userData]);
                 return response()->json([
@@ -657,7 +659,6 @@ class DemandeCongeController extends Controller
             // Si pas de correspondance exacte, chercher par LIKE (pour les recherches partielles)
             $partialMatches = \App\Models\User::with(['role', 'department'])
                 ->where('id', '!=', $request->user()->id)
-                ->where('is_active', true)
                 ->where('email', 'LIKE', '%' . $request->email . '%')
                 ->limit(10)
                 ->get();
@@ -677,7 +678,8 @@ class DemandeCongeController extends Controller
                     'first_name' => $user->first_name,
                     'last_name' => $user->name,
                     'roles' => $user->role ? [$user->role] : [],
-                    'department' => $user->department
+                    'department' => $user->department,
+                    'is_active' => $user->is_active
                 ];
                 \Log::info('Utilisateur trouvé (partiel):', ['user' => $userData]);
                 return response()->json([
@@ -687,7 +689,8 @@ class DemandeCongeController extends Controller
             }
 
             // Si pas de correspondance exacte, chercher avec LIKE
-            $users = \App\Models\User::where('email', 'LIKE', '%' . $request->email . '%')
+            $users = \App\Models\User::with(['role', 'department'])
+                                    ->where('email', 'LIKE', '%' . $request->email . '%')
                                     ->where('id', '!=', $request->user()->id)
                                     ->limit(10)
                                     ->get();
@@ -752,7 +755,6 @@ class DemandeCongeController extends Controller
             // Rechercher dans first_name et name (version simple sans CONCAT)
             $users = \App\Models\User::with(['role', 'department'])
                 ->where('id', '!=', $request->user()->id)
-                ->where('is_active', true)
                 ->where(function($query) use ($searchTerm) {
                     $query->where('first_name', 'LIKE', '%' . $searchTerm . '%')
                           ->orWhere('name', 'LIKE', '%' . $searchTerm . '%');
@@ -774,7 +776,8 @@ class DemandeCongeController extends Controller
                         'first_name' => $user->first_name,
                         'last_name' => $user->name,
                         'roles' => $user->role ? [$user->role] : [], // Convertir en array pour compatibilité
-                        'department' => $user->department
+                        'department' => $user->department,
+                        'is_active' => $user->is_active
                     ];
                 });
 

@@ -187,76 +187,145 @@
                 clearable
                 @update:search="onSearchInput"
                 @update:model-value="onUserSelect"
+                class="user-search-field"
               >
                 <template #item="{ props, item }">
-                  <v-list-item v-bind="props">
+                  <v-list-item
+                    v-bind="props"
+                    class="user-search-item"
+                    lines="two"
+                  >
                     <template #prepend>
-                      <v-avatar size="40" color="primary">
-                        <v-icon color="white">mdi-account</v-icon>
+                      <v-avatar 
+                        size="44" 
+                        :color="getUserAvatarColor(item.raw.name)"
+                        class="user-avatar"
+                      >
+                        <span class="avatar-text">{{ getUserInitials(item.raw.name) }}</span>
                       </v-avatar>
                     </template>
                     
-                    <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
+                    <v-list-item-title class="user-name-title">
+                      {{ item.raw.name }}
+                    </v-list-item-title>
+                    
                     <v-list-item-subtitle>
-                      <div class="user-details">
-                        <span class="user-email">{{ item.raw.email }}</span>
-                        <v-chip 
-                          v-if="item.raw.role" 
-                          size="x-small" 
-                          color="primary" 
-                          variant="outlined"
-                          class="ml-2"
-                        >
-                          {{ item.raw.role }}
-                        </v-chip>
-                      </div>
-                      <div v-if="item.raw.department" class="user-department">
-                        {{ item.raw.department }}
+                      <div class="user-search-details">
+                        <div class="user-email-line">
+                          <v-icon size="14" color="grey-darken-1" class="mr-1">mdi-email</v-icon>
+                          <span class="user-email-text">{{ item.raw.email }}</span>
+                        </div>
+                        
+                        <div class="user-info-chips">
+                          <v-chip 
+                            v-if="item.raw.role" 
+                            size="x-small" 
+                            :color="getRoleChipColor(item.raw.role)"
+                            variant="flat"
+                            class="role-chip"
+                          >
+                            <v-icon size="12" class="mr-1">mdi-account-tie</v-icon>
+                            {{ item.raw.role }}
+                          </v-chip>
+                          
+                          <v-chip 
+                            v-if="item.raw.department" 
+                            size="x-small" 
+                            color="blue-grey-lighten-2"
+                            variant="flat"
+                            class="dept-chip"
+                          >
+                            <v-icon size="12" class="mr-1">mdi-office-building</v-icon>
+                            {{ item.raw.department }}
+                          </v-chip>
+                        </div>
                       </div>
                     </v-list-item-subtitle>
+                    
+                    <template #append>
+                      <v-icon 
+                        color="success" 
+                        size="20"
+                        class="select-indicator"
+                      >
+                        mdi-chevron-right
+                      </v-icon>
+                    </template>
                   </v-list-item>
                 </template>
 
                 <template #selection="{ item }">
-                  <div class="selected-user">
-                    <v-avatar size="24" color="primary" class="mr-2">
-                      <v-icon color="white" size="14">mdi-account</v-icon>
+                  <div class="selected-user-inline">
+                    <v-avatar 
+                      size="24" 
+                      :color="getUserAvatarColor(item.raw.name)"
+                      class="mr-2"
+                    >
+                      <span class="avatar-text-small">{{ getUserInitials(item.raw.name) }}</span>
                     </v-avatar>
-                    <span>{{ item.raw.name }} ({{ item.raw.email }})</span>
+                    <span class="selected-text">{{ item.raw.name }}</span>
                   </div>
                 </template>
               </v-autocomplete>
 
-              <!-- Affichage de l'utilisateur sélectionné -->
-              <div v-if="selectedUser" class="selected-user-card">
-                <v-card variant="outlined" class="user-preview">
+              <!-- Affichage amélioré de l'utilisateur sélectionné -->
+              <div v-if="selectedUser" class="selected-user-preview">
+                <v-card 
+                  variant="outlined" 
+                  class="user-confirmation-card"
+                  elevation="0"
+                >
                   <v-card-text class="pa-4">
-                    <div class="d-flex align-center">
-                      <v-avatar size="48" color="primary">
-                        <v-icon color="white">mdi-account</v-icon>
-                      </v-avatar>
-                      <div class="ml-4 flex-grow-1">
-                        <div class="user-name">{{ selectedUser.name }}</div>
-                        <div class="user-email-display">{{ selectedUser.email }}</div>
-                        <div class="user-meta">
+                    <div class="confirmation-header">
+                      <v-icon color="success" size="20" class="mr-2">mdi-check-circle</v-icon>
+                      <span class="confirmation-title">Utilisateur sélectionné</span>
+                    </div>
+                    
+                    <div class="user-confirmation-content">
+                      <div class="user-avatar-section">
+                        <v-avatar 
+                          size="56" 
+                          :color="getUserAvatarColor(selectedUser.name)"
+                          class="user-main-avatar"
+                        >
+                          <span class="avatar-text-large">{{ getUserInitials(selectedUser.name) }}</span>
+                        </v-avatar>
+                        <div class="user-status-indicator">
+                          <v-icon color="success" size="16">mdi-check-circle</v-icon>
+                        </div>
+                      </div>
+                      
+                      <div class="user-info-section">
+                        <div class="user-name-main">{{ selectedUser.name }}</div>
+                        <div class="user-email-main">
+                          <v-icon size="16" color="grey-darken-1" class="mr-1">mdi-email</v-icon>
+                          {{ selectedUser.email }}
+                        </div>
+                        
+                        <div class="user-details-chips">
                           <v-chip 
                             v-if="selectedUser.role" 
                             size="small" 
-                            color="primary" 
-                            variant="outlined"
-                            class="mr-2"
+                            :color="getRoleChipColor(selectedUser.role)"
+                            variant="flat"
+                            class="detail-role-chip"
                           >
+                            <v-icon size="14" class="mr-1">mdi-account-tie</v-icon>
                             {{ selectedUser.role }}
                           </v-chip>
-                          <span v-if="selectedUser.department" class="department-text">
+                          
+                          <v-chip 
+                            v-if="selectedUser.department" 
+                            size="small" 
+                            color="blue-grey-lighten-2"
+                            variant="flat"
+                            class="detail-dept-chip"
+                          >
+                            <v-icon size="14" class="mr-1">mdi-office-building</v-icon>
                             {{ selectedUser.department }}
-                          </span>
+                          </v-chip>
                         </div>
                       </div>
-                      <v-chip color="success" variant="flat" size="small">
-                        <v-icon left size="small">mdi-check</v-icon>
-                        Confirmé
-                      </v-chip>
                     </div>
                   </v-card-text>
                 </v-card>
@@ -319,6 +388,10 @@ export default {
     isLastValidator: {
       type: Boolean,
       default: false
+    },
+    validationContext: {
+      type: String,
+      default: null
     }
   },
   
@@ -376,14 +449,25 @@ export default {
     canValidate() {
       const hasDecision = !!this.decision
       
+      console.log('Debug canValidate:', {
+        hasDecision,
+        decision: this.decision,
+        signature: this.signature,
+        selectedUser: this.selectedUser,
+        isLastValidator: this.isLastValidator,
+        commentaire: this.commentaire
+      })
+      
       if (this.decision === 'approve') {
         // Pour approbation : signature obligatoire + prochain validateur (si pas dernier)
         const hasSignature = !!this.signature
         const hasNextValidator = this.isLastValidator || !!this.selectedUser
+        console.log('Approve validation:', { hasSignature, hasNextValidator })
         return hasDecision && hasSignature && hasNextValidator
       } else if (this.decision === 'reject') {
         // Pour rejet : commentaire obligatoire uniquement
         const hasComment = !!this.commentaire && this.commentaire.length >= 10
+        console.log('Reject validation:', { hasComment })
         return hasDecision && hasComment
       }
       
@@ -400,9 +484,21 @@ export default {
       return 'Aucun utilisateur trouvé'
     },
 
-    // Détermine le rôle suivant dans la hiérarchie selon le rôle actuel
+    // Détermine le rôle suivant dans la hiérarchie selon le contexte de validation
     nextRequiredRole() {
-      // Essayer plusieurs façons d'accéder au rôle de l'utilisateur
+      // Si on a un contexte de validation spécifique, utilisons-le
+      if (this.validationContext) {
+        const roleHierarchy = {
+          'superieur': 'Directeur Unité',
+          'directeur_unite': 'Responsable RH', 
+          'responsable_rh': 'Directeur RH'
+          // directeur_rh n'a pas de suivant
+        }
+        
+        return roleHierarchy[this.validationContext] || null
+      }
+      
+      // Fallback sur l'ancienne logique si pas de contexte
       const user = this.userStore.user
       let currentUserRole = null
       
@@ -427,10 +523,23 @@ export default {
 
     // Message d'aide pour expliquer le rôle requis
     roleHelpMessage() {
-      if (this.nextRequiredRole) {
-        return `Vous devez sélectionner un utilisateur avec le rôle "${this.nextRequiredRole}"`
+      if (!this.nextRequiredRole) {
+        return "Vous pouvez sélectionner n'importe quel utilisateur"
       }
-      return "Vous pouvez sélectionner n'importe quel utilisateur"
+
+      // Messages contextuels selon le type de validation
+      if (this.validationContext === 'superieur') {
+        return `En tant que supérieur hiérarchique, vous devez sélectionner un utilisateur avec le rôle "${this.nextRequiredRole}"`
+      } else if (this.validationContext === 'directeur_unite') {
+        return `En tant que Directeur d'Unité, vous devez sélectionner un utilisateur avec le rôle "${this.nextRequiredRole}"`
+      } else if (this.validationContext === 'responsable_rh') {
+        return `En tant que Responsable RH, vous devez sélectionner un utilisateur avec le rôle "${this.nextRequiredRole}"`
+      } else if (this.validationContext === 'directeur_rh') {
+        return `En tant que Directeur RH, vous devez sélectionner un utilisateur avec le rôle "${this.nextRequiredRole}"`
+      }
+      
+      // Message par défaut
+      return `Vous devez sélectionner un utilisateur avec le rôle "${this.nextRequiredRole}"`
     }
   },
   
@@ -525,25 +634,23 @@ export default {
           user && index === self.findIndex(u => u.id === user.id)
         )
         
-        // FILTRAGE HIÉRARCHIQUE SIMPLE : après avoir récupéré tous les users
-        let filteredUsers = uniqueUsers
-        if (this.nextRequiredRole) {
-          filteredUsers = uniqueUsers.filter(user => {
-            const userRole = user.roles && user.roles[0] ? user.roles[0].nom || user.roles[0].name : null
-            return userRole === this.nextRequiredRole
-          })
-        }
+        // ENLEVER LA RESTRICTION DE RÔLE - permettre la recherche de n'importe quel compte
+        // Maintenant on peut rechercher tous les utilisateurs actifs sans restriction de rôle
+        const filteredUsers = uniqueUsers
         
         // Formater pour l'autocomplete
-        this.userSuggestions = filteredUsers.map(user => ({
-          label: `${user.first_name || ''} ${user.name || user.last_name || ''} - ${user.email}`,
-          value: user.id,
-          name: `${user.first_name || ''} ${user.name || user.last_name || ''}`.trim(),
-          email: user.email,
-          role: user.roles && user.roles[0] ? user.roles[0].nom || user.roles[0].name : null,
-          department: user.department ? user.department.name : null,
-          id: user.id
-        }))
+        this.userSuggestions = filteredUsers.map(user => {
+          const cleanName = this.formatUserName(user)
+          return {
+            label: cleanName, // Rétablir le label pour que la recherche fonctionne
+            value: user.id,
+            name: cleanName,
+            email: user.email,
+            role: user.roles && user.roles[0] ? user.roles[0].nom || user.roles[0].name : null,
+            department: user.department ? user.department.name : null,
+            id: user.id
+          }
+        })
         
       } catch (error) {
         console.error('Erreur recherche utilisateurs:', error)
@@ -554,14 +661,17 @@ export default {
     },
 
     onUserSelect(user) {
+      console.log('User selected:', user)
       if (user) {
         this.selectedUser = user
-        this.searchText = `${user.name} (${user.email})`
+        this.searchText = user.name || user.label
         this.emailProchainValidateur = user.email
+        console.log('Selected user set:', this.selectedUser)
       } else {
         this.selectedUser = null
         this.searchText = ''
         this.emailProchainValidateur = ''
+        console.log('Selected user cleared')
       }
     },
     
@@ -643,6 +753,58 @@ export default {
       this.searchLoading = false
       this.validationHistory = []
       clearTimeout(this.searchTimeout)
+    },
+
+    // Méthodes pour l'amélioration visuelle des utilisateurs
+    getUserInitials(name) {
+      if (!name) return 'U'
+      const parts = name.split(' ')
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase()
+      }
+      return name[0].toUpperCase()
+    },
+
+    getUserAvatarColor(name) {
+      if (!name) return 'primary'
+      const colors = [
+        'primary', 'secondary', 'success', 'info', 'warning',
+        'purple', 'pink', 'indigo', 'deep-purple', 'blue',
+        'cyan', 'teal', 'green', 'light-green', 'amber'
+      ]
+      const hash = name.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
+      return colors[hash % colors.length]
+    },
+
+    getRoleChipColor(role) {
+      const roleColors = {
+        'Directeur RH': 'red-darken-1',
+        'Responsable RH': 'orange-darken-1', 
+        'Directeur Unité': 'blue-darken-1',
+        'Superieur': 'green-darken-1',
+        'Employé': 'grey-darken-1'
+      }
+      return roleColors[role] || 'primary'
+    },
+
+    // Fonction pour nettoyer et formater correctement le nom complet
+    formatUserName(user) {
+      if (!user) return ''
+      
+      const firstName = user.first_name || ''
+      const lastName = user.name || user.last_name || ''
+      
+      // Éviter la duplication si first_name est déjà inclus dans name
+      if (firstName && lastName) {
+        // Si lastName commence par firstName, utiliser seulement lastName
+        if (lastName.toLowerCase().startsWith(firstName.toLowerCase())) {
+          return lastName.trim()
+        }
+        // Sinon, combiner les deux
+        return `${firstName} ${lastName}`.trim()
+      }
+      
+      return (firstName || lastName).trim()
     }
   }
 }
@@ -1013,6 +1175,191 @@ export default {
   .signature-zone {
     padding: 24px;
     min-height: 120px;
+  }
+}
+
+/* Styles améliorés pour la recherche d'utilisateurs Vuetify */
+.user-search-field {
+  margin-bottom: 16px;
+}
+
+/* Masquer le texte par défaut de vuetify pour éviter la duplication */
+.user-search-field :deep(.v-list-item-title) {
+  display: none !important;
+}
+
+.user-search-item {
+  padding: 12px 16px !important;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.user-search-item:hover {
+  background-color: #f5f5f5 !important;
+  transform: translateY(-1px);
+}
+
+.user-avatar {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-weight: 600;
+}
+
+.avatar-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+}
+
+.avatar-text-small {
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+}
+
+.user-name-title {
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  font-size: 1rem !important;
+}
+
+.user-search-details {
+  padding-top: 4px;
+}
+
+.user-email-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.user-email-text {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.user-info-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.role-chip, .dept-chip {
+  font-size: 0.75rem !important;
+  height: 20px !important;
+  font-weight: 500 !important;
+}
+
+.select-indicator {
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.user-search-item:hover .select-indicator {
+  opacity: 1;
+  color: #1976d2 !important;
+}
+
+/* Styles pour l'utilisateur sélectionné inline */
+.selected-user-inline {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.selected-text {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Styles pour la preview de confirmation */
+.selected-user-preview {
+  margin-top: 16px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.user-confirmation-card {
+  border: 2px solid #4caf50 !important;
+  background: #f8fff8 !important;
+  border-radius: 16px !important;
+}
+
+.confirmation-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8f5e8;
+}
+
+.confirmation-title {
+  font-weight: 600;
+  color: #2e7d32;
+  font-size: 0.95rem;
+}
+
+.user-confirmation-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-avatar-section {
+  position: relative;
+}
+
+.user-main-avatar {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.user-status-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-info-section {
+  flex: 1;
+}
+
+.user-name-main {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.user-email-main {
+  display: flex;
+  align-items: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.user-details-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-role-chip, .detail-dept-chip {
+  font-weight: 500 !important;
+  font-size: 0.8rem !important;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>
